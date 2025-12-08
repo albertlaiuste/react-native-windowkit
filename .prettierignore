@@ -1,0 +1,8 @@
+node_modules
+package.json
+ios
+android
+assets
+/.expo
+.git
+expo-env.d.ts
