@@ -235,6 +235,3 @@ You can theme windows via the `windowStyles` prop on `WindowView` (all fields op
 
 Defaults are exported as `WINDOW_STYLE_DEFAULTS`, `HANDLE_STYLE_DEFAULTS`, `SHADOW_STYLE_DEFAULTS`, `SNAP_STYLE_DEFAULTS`, `HEADER_STYLE_DEFAULTS`, and snap behavior defaults as `SNAP_BEHAVIOR_DEFAULTS`.
 
-## Performance tips
-
-- Keep `renderWindowContent` stable (wrap in `useCallback` where you create it) so the memoized `Window` components can bail out of renders.

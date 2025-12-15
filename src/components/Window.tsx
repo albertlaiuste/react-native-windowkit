@@ -45,6 +45,7 @@ type WindowProps<T extends WindowData> = {
   ) => void;
   onInteractionChange: (interaction: WindowInteraction<T>) => void;
   renderContent: (window: T) => ReactNode;
+  renderContentVersion: number;
   animations?: {
     entering?: typeof windowEnteringAnimation;
     exiting?: typeof windowExitingAnimation;
@@ -69,7 +70,9 @@ function Window<T extends WindowData>({
   styleConfig,
   shadowEnabled,
   headerEnabled,
+  renderContentVersion,
 }: WindowProps<T>) {
+  const renderContentFn = useMemo(() => renderContent, [renderContentVersion]);
   const componentStyles = useMemo(
     () =>
       styleConfig ?? {
@@ -392,7 +395,7 @@ function Window<T extends WindowData>({
             baseStyles.clip,
             { borderRadius: mergedWindowStyle.borderRadius },
           ]}>
-          {renderContent(resolvedWindow as T)}
+          {renderContentFn(resolvedWindow as T)}
 
           {headerEnabled && (
             <View
@@ -500,6 +503,7 @@ const MemoWindow = memo(
   (prev, next) =>
     prev.styleConfig === next.styleConfig &&
     prev.renderContent === next.renderContent &&
+    prev.renderContentVersion === next.renderContentVersion &&
     prev.animations?.entering === next.animations?.entering &&
     prev.animations?.exiting === next.animations?.exiting &&
     prev.shadowEnabled === next.shadowEnabled &&

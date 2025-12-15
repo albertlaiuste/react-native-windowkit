@@ -105,6 +105,16 @@ function WindowView<T extends WindowData>({
   const stylesCacheRef = useRef<ReturnType<typeof resolveWindowStyles> | null>(
     null,
   );
+  const renderContentRef = useRef(renderWindowContent);
+  const renderContentVersionRef = useRef(0);
+  if (renderContentRef.current !== renderWindowContent) {
+    renderContentRef.current = renderWindowContent;
+    renderContentVersionRef.current += 1;
+  }
+  const stableRenderContent = useCallback(
+    (win: T) => renderContentRef.current(win),
+    [],
+  );
 
   const resolvedStyles = useMemo(() => {
     const cache = resolveWindowStyles(
@@ -272,7 +282,8 @@ function WindowView<T extends WindowData>({
             onResize={getHandlers(win.id).onResize}
             onRelease={handleRelease}
             onInteractionChange={setInteraction}
-            renderContent={renderWindowContent}
+            renderContent={stableRenderContent}
+            renderContentVersion={renderContentVersionRef.current}
           />
         ))}
         {snapTarget && (

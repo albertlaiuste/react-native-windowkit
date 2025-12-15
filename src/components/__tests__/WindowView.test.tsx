@@ -92,6 +92,7 @@ jest.mock('../Window', () => {
   const comparator = (prev: any, next: any) =>
     prev.styleConfig === next.styleConfig &&
     prev.renderContent === next.renderContent &&
+    prev.renderContentVersion === next.renderContentVersion &&
     prev.animations?.entering === next.animations?.entering &&
     prev.animations?.exiting === next.animations?.exiting &&
     prev.shadowEnabled === next.shadowEnabled &&
