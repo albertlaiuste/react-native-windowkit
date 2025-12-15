@@ -78,6 +78,20 @@ export const HEADER_STYLE_DEFAULTS: Required<HeaderStyle> = {
   textColor: Colors.windows.hintText,
   paddingHorizontal: 10,
   paddingVertical: 6,
+  closeButton: {
+    size: 26,
+    opacity: 0.9,
+    color: Colors.windows.hintText,
+    style: {
+      backgroundColor: 'rgba(0,0,0,0.3)',
+      borderRadius: 14,
+      width: 28,
+      height: 28,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    icon: null,
+  },
 };
 
 export const SNAP_BEHAVIOR_DEFAULTS = {

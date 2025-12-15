@@ -1,5 +1,12 @@
 import { type ReactNode, memo, useCallback, useMemo, useRef } from 'react';
-import { Platform, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import {
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  type ViewStyle,
+} from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated from 'react-native-reanimated';
 import {
@@ -53,6 +60,8 @@ type WindowProps<T extends WindowData> = {
   styleConfig?: ResolvedWindowStyles;
   shadowEnabled: boolean;
   headerEnabled: boolean;
+  closeButtonEnabled: boolean;
+  onClose?: (id: string) => void;
 };
 
 function Window<T extends WindowData>({
@@ -70,6 +79,8 @@ function Window<T extends WindowData>({
   styleConfig,
   shadowEnabled,
   headerEnabled,
+  closeButtonEnabled,
+  onClose,
   renderContentVersion,
 }: WindowProps<T>) {
   const renderContentFn = useMemo(() => renderContent, [renderContentVersion]);
@@ -366,6 +377,24 @@ function Window<T extends WindowData>({
 
   const entering = animations?.entering ?? windowEnteringAnimation;
   const exiting = animations?.exiting ?? windowExitingAnimation;
+  const onPressClose = useCallback(() => {
+    onClose?.(resolvedWindow.id);
+  }, [onClose, resolvedWindow.id]);
+  const closeButtonSize = componentStyles.header.closeButton.size;
+  const closeButtonStyle = useMemo<ViewStyle>(
+    () => ({
+      width: closeButtonSize,
+      height: closeButtonSize,
+      borderRadius: closeButtonSize ? closeButtonSize / 2 : undefined,
+      opacity: componentStyles.header.closeButton.opacity,
+      ...(componentStyles.header.closeButton.style ?? {}),
+    }),
+    [
+      closeButtonSize,
+      componentStyles.header.closeButton.opacity,
+      componentStyles.header.closeButton.style,
+    ],
+  );
 
   return (
     <Animated.View
@@ -409,13 +438,35 @@ function Window<T extends WindowData>({
                   paddingVertical: componentStyles.header.paddingVertical,
                 },
               ]}>
-              <Text
-                style={[
-                  baseStyles.hintText,
-                  { color: componentStyles.header.textColor },
-                ]}>
-                {window.id}
-              </Text>
+              <View style={baseStyles.headerRow}>
+                <Text
+                  style={[
+                    baseStyles.hintText,
+                    { color: componentStyles.header.textColor },
+                  ]}>
+                  {window.id}
+                </Text>
+                {closeButtonEnabled && (
+                  <Pressable
+                    onPress={onPressClose}
+                    hitSlop={8}
+                    style={[baseStyles.closeButton, closeButtonStyle]}>
+                    {componentStyles.header.closeButton.icon ?? (
+                      <Text
+                        style={[
+                          baseStyles.closeIcon,
+                          {
+                            color:
+                              componentStyles.header.closeButton.color ??
+                              componentStyles.header.textColor,
+                          },
+                        ]}>
+                        ×
+                      </Text>
+                    )}
+                  </Pressable>
+                )}
+              </View>
             </View>
           )}
         </View>
@@ -465,6 +516,11 @@ const baseStyles = StyleSheet.create({
     overflow: 'hidden',
     borderRadius: 0,
   },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   handleLayer: {
     ...StyleSheet.absoluteFillObject,
   },
@@ -496,6 +552,14 @@ const baseStyles = StyleSheet.create({
     color: '#000',
     fontWeight: '600',
   },
+  closeButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeIcon: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
 });
 
 const MemoWindow = memo(
@@ -508,6 +572,8 @@ const MemoWindow = memo(
     prev.animations?.exiting === next.animations?.exiting &&
     prev.shadowEnabled === next.shadowEnabled &&
     prev.headerEnabled === next.headerEnabled &&
+    prev.closeButtonEnabled === next.closeButtonEnabled &&
+    prev.onClose === next.onClose &&
     prev.isUnlocked === next.isUnlocked &&
     prev.isActive === next.isActive &&
     prev.canvasSize?.width === next.canvasSize?.width &&

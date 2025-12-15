@@ -126,4 +126,11 @@ export type HeaderStyle = {
   textColor?: string;
   paddingHorizontal?: number;
   paddingVertical?: number;
+  closeButton?: {
+    size?: number;
+    opacity?: number;
+    color?: string;
+    style?: Record<string, unknown>;
+    icon?: ReactNode;
+  };
 };

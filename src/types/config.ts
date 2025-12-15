@@ -7,5 +7,8 @@ export type WindowKitConfig = {
   snap?: Partial<SnapConfig>;
   lockedShadow?: boolean;
   unlockedShadow?: boolean;
-  headerEnabled?: boolean;
+  header?: {
+    enabled?: boolean;
+    closeButton?: boolean;
+  };
 };

@@ -97,6 +97,8 @@ jest.mock('../Window', () => {
     prev.animations?.exiting === next.animations?.exiting &&
     prev.shadowEnabled === next.shadowEnabled &&
     prev.headerEnabled === next.headerEnabled &&
+    prev.closeButtonEnabled === next.closeButtonEnabled &&
+    prev.onClose === next.onClose &&
     prev.isUnlocked === next.isUnlocked &&
     prev.isActive === next.isActive &&
     prev.canvasSize?.width === next.canvasSize?.width &&

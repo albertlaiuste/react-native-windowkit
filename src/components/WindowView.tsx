@@ -48,6 +48,7 @@ type WindowViewProps<T extends WindowData> = {
   renderWindowContentPlaceholder?: ReactNode | (() => ReactNode);
   style?: ViewStyle;
   canvasStyle?: ViewStyle;
+  onCloseWindow?: (id: string) => void;
   animations?: {
     entering?: typeof windowEnteringAnimation;
     exiting?: typeof windowExitingAnimation;
@@ -71,11 +72,17 @@ function WindowView<T extends WindowData>({
   animations,
   config,
   windowStyles,
+  onCloseWindow,
 }: WindowViewProps<T>) {
   const {
     state: { windows, activeId, mode, snapEnabled },
-    actions: { focusWindow, moveWindow, resizeWindow },
+    actions: { setWindows, focusWindow, moveWindow, resizeWindow },
   } = useWindowKit<T>();
+
+  const windowsRef = useRef(windows);
+  useEffect(() => {
+    windowsRef.current = windows;
+  }, [windows]);
 
   const [canvasSize, setCanvasSize] = useState<CanvasSize | null>(null);
   const [interaction, setInteraction] = useState<WindowInteraction<T>>(null);
@@ -98,9 +105,15 @@ function WindowView<T extends WindowData>({
     () => ({
       lockedShadow: config?.lockedShadow ?? false,
       unlockedShadow: config?.unlockedShadow ?? true,
-      headerEnabled: config?.headerEnabled ?? true,
     }),
-    [config?.headerEnabled, config?.lockedShadow, config?.unlockedShadow],
+    [config?.lockedShadow, config?.unlockedShadow],
+  );
+  const resolvedHeaderConfig = useMemo(
+    () => ({
+      enabled: config?.header?.enabled ?? true,
+      closeButton: config?.header?.closeButton ?? true,
+    }),
+    [config?.header?.closeButton, config?.header?.enabled],
   );
   const stylesCacheRef = useRef<ReturnType<typeof resolveWindowStyles> | null>(
     null,
@@ -249,6 +262,17 @@ function WindowView<T extends WindowData>({
     [snapEnabled, canvasSize, resizeWindow, clearSnapTarget, latestSnapTarget],
   );
 
+  const handleClose = useCallback(
+    (id: string) => {
+      if (onCloseWindow) {
+        onCloseWindow(id);
+        return;
+      }
+      setWindows(windowsRef.current.filter((win) => win.id !== id));
+    },
+    [onCloseWindow, setWindows],
+  );
+
   let resolvedEmptyState: ReactNode | null = null;
   if (typeof renderWindowContentPlaceholder === 'function') {
     resolvedEmptyState = renderWindowContentPlaceholder();
@@ -271,7 +295,9 @@ function WindowView<T extends WindowData>({
                 ? resolvedShadowConfig.unlockedShadow
                 : resolvedShadowConfig.lockedShadow
             }
-            headerEnabled={resolvedShadowConfig.headerEnabled}
+            headerEnabled={resolvedHeaderConfig.enabled}
+            closeButtonEnabled={resolvedHeaderConfig.closeButton}
+            onClose={handleClose}
             animations={{
               entering: resolvedAnimations.entering,
               exiting: resolvedAnimations.exiting,

@@ -186,7 +186,9 @@ Pass `config` to `WindowView` to tweak behavior (all optional):
 - `snap`: `{ distance, overlap }` — overrides snap detection distances.
 - `lockedShadow` (default `false`): show shadows while in locked mode.
 - `unlockedShadow` (default `true`): show shadows while in unlocked mode.
-- `headerEnabled` (default `true`): render the window header/ID bar.
+- `header`: `{ enabled?: boolean; closeButton?: boolean }` — toggle the header/ID bar and the close button.
+
+Handle close button presses via the `onCloseWindow` prop on `WindowView` (optional; if omitted, the button is inert).
 
 ## Styling API
 
@@ -228,10 +230,19 @@ You can theme windows via the `windowStyles` prop on `WindowView` (all fields op
       textColor: '#fff',
       paddingHorizontal: 10,
       paddingVertical: 6,
+      closeButton: {
+        size: 26,
+        opacity: 0.9,
+        color: '#fff',
+        style: {
+          backgroundColor: 'rgba(0,0,0,0.3)',
+          borderRadius: 14,
+        },
+        // icon: <MyCloseIcon />, // optional custom icon
+      },
     },
   }}
 />
 ```
 
 Defaults are exported as `WINDOW_STYLE_DEFAULTS`, `HANDLE_STYLE_DEFAULTS`, `SHADOW_STYLE_DEFAULTS`, `SNAP_STYLE_DEFAULTS`, `HEADER_STYLE_DEFAULTS`, and snap behavior defaults as `SNAP_BEHAVIOR_DEFAULTS`.
-

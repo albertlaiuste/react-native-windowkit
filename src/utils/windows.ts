@@ -91,7 +91,14 @@ export const resolveWindowStyles = (
   const windowStyle = { ...WINDOW_STYLE_DEFAULTS, ...input?.window };
   const snapStyle = { ...SNAP_STYLE_DEFAULTS, ...input?.snap };
   const handleStyle = { ...HANDLE_STYLE_DEFAULTS, ...input?.handle };
-  const headerStyle = { ...HEADER_STYLE_DEFAULTS, ...input?.header };
+  const headerStyle = {
+    ...HEADER_STYLE_DEFAULTS,
+    ...input?.header,
+    closeButton: {
+      ...HEADER_STYLE_DEFAULTS.closeButton,
+      ...input?.header?.closeButton,
+    },
+  };
   const shadowStyle = { ...SHADOW_STYLE_DEFAULTS, ...input?.shadow };
   const resolved: ResolvedWindowStyles = {
     window: windowStyle,
