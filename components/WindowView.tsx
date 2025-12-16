@@ -117,13 +117,23 @@ function WindowView<T extends WindowData>({
     }),
     [config?.lockedShadow, config?.unlockedShadow],
   );
-  const resolvedHeaderConfig = useMemo(
-    () => ({
+  const resolvedHeaderConfig = useMemo(() => {
+    const closeButtonConfig = config?.header?.closeButton;
+    let closeButtonEnabled = true;
+
+    if (closeButtonConfig === 'locked') {
+      closeButtonEnabled = mode === 'locked';
+    } else if (closeButtonConfig === 'unlocked') {
+      closeButtonEnabled = mode === 'unlocked';
+    } else if (closeButtonConfig !== undefined) {
+      closeButtonEnabled = closeButtonConfig;
+    }
+
+    return {
       enabled: config?.header?.enabled ?? true,
-      closeButton: config?.header?.closeButton ?? true,
-    }),
-    [config?.header?.closeButton, config?.header?.enabled],
-  );
+      closeButton: closeButtonEnabled,
+    };
+  }, [config?.header?.closeButton, config?.header?.enabled, mode]);
   const stylesCacheRef = useRef<ReturnType<typeof resolveWindowStyles> | null>(
     null,
   );

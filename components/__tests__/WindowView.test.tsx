@@ -118,7 +118,7 @@ jest.mock('../Window', () => {
     props.renderHeader?.({
       window: props.window,
       isActive: false,
-      closeButtonEnabled: true,
+      closeButtonEnabled: props.closeButtonEnabled,
       onClose: props.onClose,
     });
     return null;
@@ -297,5 +297,47 @@ describe('WindowView memoization', () => {
     );
 
     expect(renderHeader).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the close button only in the configured mode', () => {
+    const windows = [
+      { id: '1', x: 0, y: 0, width: 100, height: 100, zIndex: 1 },
+    ];
+
+    mockUseWindowKit
+      .mockReturnValueOnce({
+        state: { ...createState(windows), mode: 'locked' as const },
+        actions: baseActions,
+      })
+      .mockReturnValueOnce({
+        state: { ...createState(windows), mode: 'unlocked' as const },
+        actions: baseActions,
+      });
+
+    const renderHeader = jest.fn(() => null);
+
+    const lockedElement = React.createElement(WindowView, {
+      renderWindowContent: () => null,
+      renderHeader,
+      config: { header: { closeButton: 'unlocked' } },
+    });
+    const { rerender } = render(lockedElement);
+
+    expect(renderHeader).toHaveBeenCalledWith(
+      expect.objectContaining({ closeButtonEnabled: false }),
+    );
+
+    renderHeader.mockClear();
+
+    const unlockedElement = React.createElement(WindowView, {
+      renderWindowContent: () => null,
+      renderHeader,
+      config: { header: { closeButton: 'unlocked' } },
+    });
+    rerender(unlockedElement);
+
+    expect(renderHeader).toHaveBeenCalledWith(
+      expect.objectContaining({ closeButtonEnabled: true }),
+    );
   });
 });

@@ -216,7 +216,7 @@ Pass `config` to `WindowView` to tweak behavior (all optional):
 - `snap`: `{ distance, overlap, visualPreview }` — overrides snap detection distances and whether to show the snap highlight.
 - `lockedShadow` (default `false`): show shadows while in locked mode.
 - `unlockedShadow` (default `true`): show shadows while in unlocked mode.
-- `header`: `{ enabled?: boolean; closeButton?: boolean }` — toggle the header/ID bar and the close button.
+- `header`: `{ enabled?: boolean; closeButton?: boolean | 'locked' | 'unlocked' }` — toggle the header/ID bar and the close button; strings restrict the button to a specific mode.
 - `renderHeader`: `(props) => ReactNode` — render a custom header component. Receives `{ window, isActive, closeButtonEnabled, onClose }`.
 
 ## Styling API

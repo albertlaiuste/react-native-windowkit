@@ -1,3 +1,5 @@
+import { type WindowsMode } from './windows';
+
 export type SnapConfig = {
   distance: number;
   overlap: number;
@@ -10,6 +12,6 @@ export type WindowKitConfig = {
   unlockedShadow?: boolean;
   header?: {
     enabled?: boolean;
-    closeButton?: boolean;
+    closeButton?: boolean | WindowsMode;
   };
 };
