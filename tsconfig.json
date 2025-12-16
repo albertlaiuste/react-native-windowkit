@@ -15,5 +15,13 @@
     "esModuleInterop": true,
     "skipLibCheck": true
   },
-  "include": ["src/**/*"]
+  "include": [
+    "lib/index.ts",
+    "components/**/*",
+    "constants/**/*",
+    "hooks/**/*",
+    "types/**/*",
+    "utils/**/*"
+  ],
+  "exclude": ["dist", "node_modules"]
 }
