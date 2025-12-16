@@ -79,16 +79,11 @@ export const HEADER_STYLE_DEFAULTS: Required<HeaderStyle> = {
   paddingHorizontal: 10,
   paddingVertical: 6,
   closeButton: {
-    size: 26,
+    size: 20,
     opacity: 0.9,
     color: Colors.windows.hintText,
     style: {
       backgroundColor: 'rgba(0,0,0,0.3)',
-      borderRadius: 14,
-      width: 28,
-      height: 28,
-      alignItems: 'center',
-      justifyContent: 'center',
     },
     icon: null,
   },
