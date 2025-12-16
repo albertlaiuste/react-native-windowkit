@@ -314,6 +314,7 @@ function WindowView<T extends WindowData>({
         ))}
         {snapTarget && (
           <Animated.View
+            pointerEvents={'none'}
             style={[
               viewStyles.snapPreview,
               {
@@ -345,7 +346,6 @@ const viewStyles = StyleSheet.create({
     flex: 1,
   },
   snapPreview: {
-    pointerEvents: 'none',
     position: 'absolute',
     borderStyle: 'dashed',
   },

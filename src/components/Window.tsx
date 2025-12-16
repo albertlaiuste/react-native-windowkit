@@ -130,12 +130,10 @@ function Window<T extends WindowData>({
   let borderColor = componentStyles.window.borderColorInactive;
   let handleBackgroundColor = componentStyles.handle.backgroundInactive;
   let handleBorderColor = componentStyles.handle.borderInactive;
-  let pointerEvents: 'box-none' | 'none' = 'none';
 
   if (isUnlocked) {
     borderWidth = componentStyles.window.borderWidth ?? 0;
     handleOpacity = componentStyles.handle.activeOpacity;
-    pointerEvents = 'box-none';
   }
 
   const shadowStyle = useMemo<ViewStyle>(() => {
@@ -472,17 +470,23 @@ function Window<T extends WindowData>({
         </View>
       </GestureDetector>
 
-      <View style={[baseStyles.handleLayer, { pointerEvents }]}>
+      <View
+        pointerEvents={isUnlocked ? 'box-none' : 'none'}
+        style={baseStyles.handleLayer}>
         {borderGestures.map((hitArea) => (
           <GestureDetector
             key={`border-${hitArea.key}`}
             gesture={hitArea.gesture}>
-            <View style={[baseStyles.borderHit, hitArea.style]} />
+            <View
+              pointerEvents="box-only"
+              style={[baseStyles.borderHit, hitArea.style]}
+            />
           </GestureDetector>
         ))}
         {handleGestures.map((handle) => (
           <GestureDetector key={handle.key} gesture={handle.gesture}>
             <View
+              pointerEvents="box-only"
               style={[
                 baseStyles.handle,
                 handle.position,
@@ -526,12 +530,10 @@ const baseStyles = StyleSheet.create({
   },
   borderHit: {
     position: 'absolute',
-    pointerEvents: 'box-only',
   },
   handle: {
     opacity: 0.25,
     position: 'absolute',
-    pointerEvents: 'box-only',
     width: 0,
     height: 0,
     borderRadius: 0,
