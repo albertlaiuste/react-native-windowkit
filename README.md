@@ -117,6 +117,36 @@ function Controls() {
 
 Each window can optionally set `minWidth` / `minHeight` (defaults to the library minima) and `maxWidth` / `maxHeight` (defaults to unbounded; if omitted, the canvas size is the cap).
 
+### Rendering performance
+
+`renderWindowContent` and `renderHeader` are treated as render props. If their identity changes every render (e.g., inline functions), every window re-renders. Keep them stable with `useCallback` (or a memoized component) to avoid unnecessary work:
+
+```tsx
+const renderWindowContent = useCallback(
+  (win: WindowData) => (
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+      <Text style={{ color: '#fff' }}>{win.id} window content</Text>
+    </View>
+  ),
+  [],
+);
+
+const renderHeader = useCallback(
+  () => (
+    <View style={{ width: '100%', height: 40, position: 'absolute', backgroundColor: '#000', opacity: 0.4, alignItems: 'center', justifyContent: 'center' }}>
+      <Text style={{ color: '#fff', fontWeight: 'bold' }}>Custom header</Text>
+    </View>
+  ),
+  [],
+);
+
+<WindowView
+  style={{ backgroundColor: '#171717' }}
+  renderWindowContent={renderWindowContent}
+  renderHeader={renderHeader}
+/>;
+```
+
 ## Custom layout with `Window`
 
 Build your own layout (grid, split view, etc.) but reuse the gestures/handles:
@@ -187,6 +217,7 @@ Pass `config` to `WindowView` to tweak behavior (all optional):
 - `lockedShadow` (default `false`): show shadows while in locked mode.
 - `unlockedShadow` (default `true`): show shadows while in unlocked mode.
 - `header`: `{ enabled?: boolean; closeButton?: boolean }` — toggle the header/ID bar and the close button.
+- `renderHeader`: `(props) => ReactNode` — render a custom header component. Receives `{ window, isActive, closeButtonEnabled, onClose }`.
 
 ## Styling API
 

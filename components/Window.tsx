@@ -33,6 +33,7 @@ import {
   type WindowInteraction,
   type WindowData,
   type ResizeDirection,
+  type RenderHeaderProps,
 } from '../types/windows';
 import { type ResolvedWindowStyles } from '../utils/windows';
 
@@ -53,6 +54,8 @@ type WindowProps<T extends WindowData> = {
   onInteractionChange: (interaction: WindowInteraction<T>) => void;
   renderContent: (window: T) => ReactNode;
   renderContentVersion: number;
+  renderHeader?: (props: RenderHeaderProps<T>) => ReactNode;
+  renderHeaderVersion?: number;
   animations?: {
     entering?: typeof windowEnteringAnimation;
     exiting?: typeof windowExitingAnimation;
@@ -82,8 +85,11 @@ function Window<T extends WindowData>({
   closeButtonEnabled,
   onClose,
   renderContentVersion,
+  renderHeader,
+  renderHeaderVersion,
 }: WindowProps<T>) {
   const renderContentFn = useMemo(() => renderContent, [renderContentVersion]);
+  const renderHeaderFn = useMemo(() => renderHeader, [renderHeaderVersion]);
   const componentStyles = useMemo(
     () =>
       styleConfig ?? {
@@ -375,9 +381,20 @@ function Window<T extends WindowData>({
 
   const entering = animations?.entering ?? windowEnteringAnimation;
   const exiting = animations?.exiting ?? windowExitingAnimation;
-  const onPressClose = useCallback(() => {
+  const triggerClose = useCallback(() => {
     onClose?.(resolvedWindow.id);
   }, [onClose, resolvedWindow.id]);
+  const onCloseForHeader = useMemo(
+    () =>
+      onClose
+        ? (id: string) => {
+            if (id === resolvedWindow.id) {
+              triggerClose();
+            }
+          }
+        : undefined,
+    [onClose, resolvedWindow.id, triggerClose],
+  );
   const closeButtonSize = componentStyles.header.closeButton.size;
   const closeButtonStyle = useMemo<ViewStyle>(
     () => ({
@@ -424,49 +441,55 @@ function Window<T extends WindowData>({
           ]}>
           {renderContentFn(resolvedWindow as T)}
 
-          {headerEnabled && (
-            <View
-              style={[
-                baseStyles.hintBar,
-                {
-                  backgroundColor: componentStyles.header.backgroundColor,
-                  borderTopLeftRadius: mergedWindowStyle.borderRadius,
-                  borderTopRightRadius: mergedWindowStyle.borderRadius,
-                  paddingHorizontal: componentStyles.header.paddingHorizontal,
-                  paddingVertical: componentStyles.header.paddingVertical,
-                },
-              ]}>
-              <View style={baseStyles.headerRow}>
-                <Text
-                  style={[
-                    baseStyles.hintText,
-                    { color: componentStyles.header.textColor },
-                  ]}>
-                  {window.id}
-                </Text>
-                {closeButtonEnabled && (
-                  <Pressable
-                    onPress={onPressClose}
-                    hitSlop={8}
-                    style={[baseStyles.closeButton, closeButtonStyle]}>
-                    {componentStyles.header.closeButton.icon ?? (
-                      <Text
-                        style={[
-                          baseStyles.closeIcon,
-                          {
-                            color:
-                              componentStyles.header.closeButton.color ??
-                              componentStyles.header.textColor,
-                          },
-                        ]}>
-                        ×
-                      </Text>
-                    )}
-                  </Pressable>
-                )}
+          {headerEnabled &&
+            (renderHeaderFn?.({
+              window: resolvedWindow as T,
+              isActive,
+              closeButtonEnabled,
+              ...(onCloseForHeader ? { onClose: onCloseForHeader } : {}),
+            }) ?? (
+              <View
+                style={[
+                  baseStyles.hintBar,
+                  {
+                    backgroundColor: componentStyles.header.backgroundColor,
+                    borderTopLeftRadius: mergedWindowStyle.borderRadius,
+                    borderTopRightRadius: mergedWindowStyle.borderRadius,
+                    paddingHorizontal: componentStyles.header.paddingHorizontal,
+                    paddingVertical: componentStyles.header.paddingVertical,
+                  },
+                ]}>
+                <View style={baseStyles.headerRow}>
+                  <Text
+                    style={[
+                      baseStyles.hintText,
+                      { color: componentStyles.header.textColor },
+                    ]}>
+                    {window.id}
+                  </Text>
+                  {closeButtonEnabled && (
+                    <Pressable
+                      onPress={triggerClose}
+                      hitSlop={8}
+                      style={[baseStyles.closeButton, closeButtonStyle]}>
+                      {componentStyles.header.closeButton.icon ?? (
+                        <Text
+                          style={[
+                            baseStyles.closeIcon,
+                            {
+                              color:
+                                componentStyles.header.closeButton.color ??
+                                componentStyles.header.textColor,
+                            },
+                          ]}>
+                          ×
+                        </Text>
+                      )}
+                    </Pressable>
+                  )}
+                </View>
               </View>
-            </View>
-          )}
+            ))}
         </View>
       </GestureDetector>
 
@@ -570,6 +593,8 @@ const MemoWindow = memo(
     prev.styleConfig === next.styleConfig &&
     prev.renderContent === next.renderContent &&
     prev.renderContentVersion === next.renderContentVersion &&
+    prev.renderHeader === next.renderHeader &&
+    prev.renderHeaderVersion === next.renderHeaderVersion &&
     prev.animations?.entering === next.animations?.entering &&
     prev.animations?.exiting === next.animations?.exiting &&
     prev.shadowEnabled === next.shadowEnabled &&

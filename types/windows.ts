@@ -134,3 +134,10 @@ export type HeaderStyle = {
     icon?: ReactNode;
   };
 };
+
+export type RenderHeaderProps<T extends WindowData = WindowData> = {
+  window: T;
+  isActive: boolean;
+  closeButtonEnabled: boolean;
+  onClose?: (id: string) => void;
+};

@@ -93,6 +93,8 @@ jest.mock('../Window', () => {
     prev.styleConfig === next.styleConfig &&
     prev.renderContent === next.renderContent &&
     prev.renderContentVersion === next.renderContentVersion &&
+    prev.renderHeader === next.renderHeader &&
+    prev.renderHeaderVersion === next.renderHeaderVersion &&
     prev.animations?.entering === next.animations?.entering &&
     prev.animations?.exiting === next.animations?.exiting &&
     prev.shadowEnabled === next.shadowEnabled &&
@@ -113,6 +115,12 @@ jest.mock('../Window', () => {
 
   const MockWindow = (props: any) => {
     props.renderContent(props.window);
+    props.renderHeader?.({
+      window: props.window,
+      isActive: false,
+      closeButtonEnabled: true,
+      onClose: props.onClose,
+    });
     return null;
   };
 
@@ -258,5 +266,36 @@ describe('WindowView memoization', () => {
 
     expect(renderCounts).toEqual({ '1': 1, '2': 2, '3': 1 });
     expect(renderWindowContent).toHaveBeenCalledTimes(1);
+  });
+
+  it('memoizes a custom header renderer', () => {
+    const windows = [
+      { id: '1', x: 0, y: 0, width: 100, height: 100, zIndex: 1 },
+    ];
+
+    mockUseWindowKit.mockReturnValue({
+      state: createState(windows),
+      actions: baseActions,
+    });
+
+    const renderWindowContent = jest.fn(() => null);
+    const renderHeader = jest.fn(() => null);
+
+    const element = React.createElement(WindowView, {
+      renderWindowContent,
+      renderHeader,
+    });
+    const { rerender } = render(element);
+
+    expect(renderHeader).toHaveBeenCalledTimes(1);
+
+    rerender(
+      React.createElement(WindowView, {
+        renderWindowContent,
+        renderHeader,
+      }),
+    );
+
+    expect(renderHeader).toHaveBeenCalledTimes(1);
   });
 });

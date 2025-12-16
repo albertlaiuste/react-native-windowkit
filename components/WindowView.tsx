@@ -35,6 +35,7 @@ import {
   type WindowStyle,
   type WindowInteraction,
   type WindowData,
+  type RenderHeaderProps,
 } from '../types/windows';
 import { type WindowKitConfig, type SnapConfig } from '../types/config';
 import {
@@ -46,6 +47,7 @@ import {
 type WindowViewProps<T extends WindowData> = {
   renderWindowContent: (window: T) => ReactNode;
   renderWindowContentPlaceholder?: ReactNode | (() => ReactNode);
+  renderHeader?: (props: RenderHeaderProps<T>) => ReactNode;
   style?: ViewStyle;
   canvasStyle?: ViewStyle;
   onCloseWindow?: (id: string) => void;
@@ -67,6 +69,7 @@ type WindowViewProps<T extends WindowData> = {
 function WindowView<T extends WindowData>({
   renderWindowContent,
   renderWindowContentPlaceholder,
+  renderHeader,
   style,
   canvasStyle,
   animations,
@@ -132,6 +135,16 @@ function WindowView<T extends WindowData>({
   }
   const stableRenderContent = useCallback(
     (win: T) => renderContentRef.current(win),
+    [],
+  );
+  const renderHeaderRef = useRef(renderHeader);
+  const renderHeaderVersionRef = useRef(0);
+  if (renderHeaderRef.current !== renderHeader) {
+    renderHeaderRef.current = renderHeader;
+    renderHeaderVersionRef.current += 1;
+  }
+  const stableRenderHeader = useCallback(
+    (props: RenderHeaderProps<T>) => renderHeaderRef.current?.(props),
     [],
   );
 
@@ -320,6 +333,8 @@ function WindowView<T extends WindowData>({
             onInteractionChange={setInteraction}
             renderContent={stableRenderContent}
             renderContentVersion={renderContentVersionRef.current}
+            renderHeader={stableRenderHeader}
+            renderHeaderVersion={renderHeaderVersionRef.current}
           />
         ))}
         {snapPreviewTarget && (
