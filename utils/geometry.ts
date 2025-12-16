@@ -20,6 +20,7 @@ type Edges = {
 const defaultSnapConfig: SnapConfig = {
   distance: SNAP_BEHAVIOR_DEFAULTS.distance,
   overlap: SNAP_BEHAVIOR_DEFAULTS.overlap,
+  visualPreview: SNAP_BEHAVIOR_DEFAULTS.visualPreview,
 };
 
 const windowStyleFor = (window: WindowData) => ({
@@ -48,6 +49,7 @@ export const resolveMaxHeight = (window: WindowData, canvas?: CanvasSize) => {
 const mergeSnapConfig = (config: SnapConfig = defaultSnapConfig) => ({
   distance: config.distance ?? defaultSnapConfig.distance,
   overlap: config.overlap ?? defaultSnapConfig.overlap,
+  visualPreview: config.visualPreview ?? defaultSnapConfig.visualPreview,
 });
 
 const pickBestSnap = (candidates: SnapCandidate[]) =>

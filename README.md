@@ -183,12 +183,10 @@ Defaults are JS-driven on web (no native driver) and use cubic easing/spring on 
 
 Pass `config` to `WindowView` to tweak behavior (all optional):
 
-- `snap`: `{ distance, overlap }` — overrides snap detection distances.
+- `snap`: `{ distance, overlap, visualPreview }` — overrides snap detection distances and whether to show the snap highlight.
 - `lockedShadow` (default `false`): show shadows while in locked mode.
 - `unlockedShadow` (default `true`): show shadows while in unlocked mode.
 - `header`: `{ enabled?: boolean; closeButton?: boolean }` — toggle the header/ID bar and the close button.
-
-Handle close button presses via the `onCloseWindow` prop on `WindowView` (optional; if omitted, the button is inert).
 
 ## Styling API
 

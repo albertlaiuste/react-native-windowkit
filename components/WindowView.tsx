@@ -90,8 +90,14 @@ function WindowView<T extends WindowData>({
     () => ({
       distance: config?.snap?.distance ?? SNAP_BEHAVIOR_DEFAULTS.distance,
       overlap: config?.snap?.overlap ?? SNAP_BEHAVIOR_DEFAULTS.overlap,
+      visualPreview:
+        config?.snap?.visualPreview ?? SNAP_BEHAVIOR_DEFAULTS.visualPreview,
     }),
-    [config?.snap?.distance, config?.snap?.overlap],
+    [
+      config?.snap?.distance,
+      config?.snap?.overlap,
+      config?.snap?.visualPreview,
+    ],
   );
   const resolvedAnimations = useMemo(
     () => ({
@@ -177,8 +183,12 @@ function WindowView<T extends WindowData>({
     setCanvasSize({ width, height });
   }, []);
 
+  const snapPreviewTarget = resolvedSnapConfig.visualPreview
+    ? snapTarget
+    : null;
+
   const { snapAnim, previewTransform } = useSnapPreview({
-    snapTarget,
+    snapTarget: snapPreviewTarget,
     snapSpringConfig: resolvedAnimations.snap,
     snapOffset: resolvedStyles.snap.offset,
   });
@@ -312,16 +322,16 @@ function WindowView<T extends WindowData>({
             renderContentVersion={renderContentVersionRef.current}
           />
         ))}
-        {snapTarget && (
+        {snapPreviewTarget && (
           <Animated.View
             pointerEvents={'none'}
             style={[
               viewStyles.snapPreview,
               {
-                width: snapTarget.window.width,
-                height: snapTarget.window.height,
-                left: snapTarget.window.x,
-                top: snapTarget.window.y,
+                width: snapPreviewTarget.window.width,
+                height: snapPreviewTarget.window.height,
+                left: snapPreviewTarget.window.x,
+                top: snapPreviewTarget.window.y,
                 opacity: snapAnim,
                 transform: previewTransform,
                 borderRadius: resolvedStyles.snap.borderRadius,

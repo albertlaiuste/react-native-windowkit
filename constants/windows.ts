@@ -97,6 +97,7 @@ export const HEADER_STYLE_DEFAULTS: Required<HeaderStyle> = {
 export const SNAP_BEHAVIOR_DEFAULTS = {
   distance: 32,
   overlap: 64,
+  visualPreview: true,
 };
 
 export const buildHandleLayouts = (size: number) =>
