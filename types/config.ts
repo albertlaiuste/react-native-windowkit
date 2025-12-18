@@ -1,6 +1,7 @@
 import { type WindowsMode } from './windows';
 
 export type SnapConfig = {
+  enabled: boolean;
   distance: number;
   overlap: number;
   visualPreview: boolean;

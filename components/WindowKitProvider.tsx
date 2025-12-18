@@ -8,6 +8,10 @@ import {
   useState,
 } from 'react';
 import {
+  HINT_BEHAVIOR_DEFAULTS,
+  SNAP_BEHAVIOR_DEFAULTS,
+} from '../constants/windows';
+import {
   type WindowsMode,
   type WindowKitContextValue,
   type WindowKitProviderProps,
@@ -36,11 +40,11 @@ export function WindowKitProvider<T extends WindowData>({
   children,
   windows = [],
   mode = 'locked',
-  snapEnabled = true,
   onWindowsChange,
   onActiveChange,
   onModeChange,
   onSnapChange,
+  onHintChange,
 }: WindowKitProviderProps<T>) {
   const [state, setState] = useState<WindowKitContextValue<T>['state']>(() => {
     const zCounter = windows.reduce((max, win) => Math.max(max, win.zIndex), 0);
@@ -50,13 +54,15 @@ export function WindowKitProvider<T extends WindowData>({
       activeId: null,
       zCounter,
       mode,
-      snapEnabled,
+      snapEnabled: SNAP_BEHAVIOR_DEFAULTS.enabled,
+      hintEnabled: HINT_BEHAVIOR_DEFAULTS.enabled,
     };
   });
   const previousWindows = useRef<T[]>(state.windows);
   const previousActiveId = useRef<string | null>(state.activeId);
   const previousMode = useRef<WindowsMode>(state.mode);
   const previousSnapEnabled = useRef<boolean>(state.snapEnabled);
+  const previousHintEnabled = useRef<boolean>(state.hintEnabled);
 
   useEffect(() => {
     if (onWindowsChange && previousWindows.current !== state.windows) {
@@ -85,6 +91,13 @@ export function WindowKitProvider<T extends WindowData>({
       onSnapChange(state.snapEnabled);
     }
   }, [onSnapChange, state.snapEnabled]);
+
+  useEffect(() => {
+    if (onHintChange && previousHintEnabled.current !== state.hintEnabled) {
+      previousHintEnabled.current = state.hintEnabled;
+      onHintChange(state.hintEnabled);
+    }
+  }, [onHintChange, state.hintEnabled]);
 
   const setWindows = useCallback(
     (nextWindows: T[]) =>
@@ -222,6 +235,19 @@ export function WindowKitProvider<T extends WindowData>({
     });
   }, []);
 
+  const setHintEnabled = useCallback((hintEnabled: boolean) => {
+    setState((current) => {
+      if (current.hintEnabled === hintEnabled) {
+        return current;
+      }
+      return { ...current, hintEnabled };
+    });
+  }, []);
+
+  const toggleHints = useCallback(() => {
+    setState((current) => ({ ...current, hintEnabled: !current.hintEnabled }));
+  }, []);
+
   const value: WindowKitContextValue<T> = useMemo(
     () => ({
       state,
@@ -234,10 +260,13 @@ export function WindowKitProvider<T extends WindowData>({
         toggleMode,
         setSnapEnabled,
         toggleSnap,
+        setHintEnabled,
+        toggleHints,
       },
     }),
     [
       focusWindow,
+      setHintEnabled,
       moveWindow,
       resizeWindow,
       setMode,
@@ -246,6 +275,7 @@ export function WindowKitProvider<T extends WindowData>({
       state,
       toggleMode,
       toggleSnap,
+      toggleHints,
     ],
   );
 

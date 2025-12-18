@@ -16,6 +16,7 @@ import {
 import { type WindowData } from '../../types/windows';
 
 const baseConfig = {
+  enabled: SNAP_BEHAVIOR_DEFAULTS.enabled,
   distance: SNAP_BEHAVIOR_DEFAULTS.distance,
   overlap: SNAP_BEHAVIOR_DEFAULTS.overlap,
   visualPreview: SNAP_BEHAVIOR_DEFAULTS.visualPreview,

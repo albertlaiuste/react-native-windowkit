@@ -15,6 +15,7 @@ Lightweight window management primitives for React Native. Drag, resize, snap, a
   - [`WindowView`](#windowview)
   - [`Window`](#window)
   - [`WindowKitProvider`](#windowkitprovider)
+- [`useWindowKit` hook](#usewindowkit-hook)
 - [Configuration](#configuration)
 - [Styling](#styling)
   - [`windowStyle` (per-window overrides)](#windowstyle-per-window-overrides)
@@ -38,7 +39,7 @@ Ensure your Babel config includes the Reanimated plugin and that Gesture Handler
 
 ## Quick start
 
-Minimal canvas with controls for lock/unlock and snapping:
+Minimal canvas with controls for lock/unlock and snapping.
 
 ```tsx
 import React from 'react';
@@ -82,7 +83,8 @@ const initialWindows: WindowData[] = [
 export default function App() {
   return (
     <WindowKitProvider windows={initialWindows}>
-      <WindowView style={{ backgroundColor: '#171717' }}
+      <WindowView
+        style={{ backgroundColor: '#171717' }}
         renderWindowContent={(win) => (
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
             <Text style={{ color: '#fff' }}>{win.id} window content</Text>
@@ -96,8 +98,8 @@ export default function App() {
 
 function Controls() {
   const {
-    actions: { setWindows, toggleMode, toggleSnap },
-    state: { windows, mode, snapEnabled },
+    actions: { setWindows, toggleMode, toggleSnap, toggleHints },
+    state: { windows, mode, snapEnabled, hintEnabled },
   } = useWindowKit();
 
   const addWindow = () => {
@@ -126,6 +128,10 @@ function Controls() {
       <Button
         title={snapEnabled ? 'Disable snap' : 'Enable snap'}
         onPress={toggleSnap}
+      />
+      <Button
+        title={hintEnabled ? 'Disable hints' : 'Enable hints'}
+        onPress={toggleHints}
       />
     </View>
   );
@@ -243,11 +249,11 @@ Defaults are JS-driven on web (no native driver) and use cubic easing/spring on 
 | `children` | `ReactNode` | **Required.** Content that uses the window kit. |
 | `windows` | `WindowData[]` | Initial windows. |
 | `mode` | `'locked' \| 'unlocked'` | Starting mode. |
-| `snapEnabled` | `boolean` | Whether snap is initially enabled. |
 | `onWindowsChange` | `(windows: WindowData[]) => void` | Called when window list changes. |
 | `onActiveChange` | `(activeId: string \| null) => void` | Called when active window changes. |
 | `onModeChange` | `(mode: 'locked' \| 'unlocked') => void` | Called when mode toggles. |
 | `onSnapChange` | `(enabled: boolean) => void` | Called when snap enabled state changes. |
+| `onHintChange` | `(enabled: boolean) => void` | Called when hint enabled state changes. |
 
 ### `WindowView`
 
@@ -287,12 +293,43 @@ Defaults are JS-driven on web (no native driver) and use cubic easing/spring on 
 | `closeButtonEnabled` | `boolean` | Whether the close button renders. |
 | `onClose` | `(id: string) => void` | Close handler. |
 
+## `useWindowKit` hook
+
+Returns `{ state, actions }` from the nearest `WindowKitProvider`.
+
+### `state`
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `windows` | `WindowData[]` | Current windows array. |
+| `activeId` | `string \| null` | Currently focused window id. |
+| `mode` | `'locked' \| 'unlocked'` | Current mode. |
+| `snapEnabled` | `boolean` | Whether snap is enabled. |
+| `hintEnabled` | `boolean` | Whether hints are enabled. |
+| `zCounter` | `number` | Current z-index counter. |
+
+### `actions`
+
+| Action | Signature | Description |
+| --- | --- | --- |
+| `setWindows` | `(windows: WindowData[]) => void` | Replace windows array. |
+| `focusWindow` | `(id: string) => void` | Focus and bring window to front. |
+| `moveWindow` | `(id: string, x: number, y: number) => void` | Move a window. |
+| `resizeWindow` | `(id: string, rect) => void` | Resize a window. |
+| `setMode` | `(mode: 'locked' \| 'unlocked') => void` | Set mode. |
+| `toggleMode` | `() => void` | Toggle mode. |
+| `setSnapEnabled` | `(enabled: boolean) => void` | Enable/disable snapping. |
+| `toggleSnap` | `() => void` | Toggle snapping. |
+| `setHintEnabled` | `(enabled: boolean) => void` | Enable/disable hints. |
+| `toggleHints` | `() => void` | Toggle hints. |
+
 ## Configuration
 
 Pass `config` to `WindowView` to tweak behavior (all optional):
 
 | Property | Type | Description | Default |
 | --- | --- | --- | --- |
+| `snap.enabled` | `boolean` | Whether snap behavior starts enabled | `true` |
 | `snap.distance` | `number` | Snap detection range in px | `32` |
 | `snap.overlap` | `number` | Area overlap required to trigger snap | `64` |
 | `snap.visualPreview` | `boolean` | Show snap highlight preview | `true` |
@@ -309,6 +346,7 @@ Pass `config` to `WindowView` to tweak behavior (all optional):
 // Full config with defaults
 const config = {
   snap: {
+    enabled: true,
     distance: 32,
     overlap: 64,
     visualPreview: true,

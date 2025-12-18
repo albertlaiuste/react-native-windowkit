@@ -98,6 +98,7 @@ export const HEADER_STYLE_DEFAULTS: Required<HeaderStyle> = {
 };
 
 export const SNAP_BEHAVIOR_DEFAULTS = {
+  enabled: true,
   distance: 32,
   overlap: 64,
   visualPreview: true,

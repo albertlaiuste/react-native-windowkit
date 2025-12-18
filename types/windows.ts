@@ -47,6 +47,7 @@ export type WindowKitState<T extends WindowData = WindowData> = {
   zCounter: number;
   mode: WindowsMode;
   snapEnabled: boolean;
+  hintEnabled: boolean;
 };
 
 export type WindowKitActions<T extends WindowData = WindowData> = {
@@ -61,6 +62,8 @@ export type WindowKitActions<T extends WindowData = WindowData> = {
   toggleMode: () => void;
   setSnapEnabled: (snapEnabled: boolean) => void;
   toggleSnap: () => void;
+  setHintEnabled: (hintEnabled: boolean) => void;
+  toggleHints: () => void;
 };
 
 export type WindowKitContextValue<T extends WindowData = WindowData> = {
@@ -72,11 +75,11 @@ export type WindowKitProviderProps<T extends WindowData = WindowData> = {
   children: ReactNode;
   windows?: T[];
   mode?: WindowsMode;
-  snapEnabled?: boolean;
   onWindowsChange?: (windows: T[]) => void;
   onActiveChange?: (activeId: string | null) => void;
   onModeChange?: (mode: WindowsMode) => void;
   onSnapChange?: (snapEnabled: boolean) => void;
+  onHintChange?: (hintEnabled: boolean) => void;
 };
 
 export type WindowStyle = {

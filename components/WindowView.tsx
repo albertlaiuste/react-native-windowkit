@@ -94,8 +94,15 @@ function WindowView<T extends WindowData>({
   onCloseWindow,
 }: WindowViewProps<T>) {
   const {
-    state: { windows, activeId, mode, snapEnabled },
-    actions: { setWindows, focusWindow, moveWindow, resizeWindow },
+    state: { windows, activeId, mode, snapEnabled, hintEnabled },
+    actions: {
+      setWindows,
+      focusWindow,
+      moveWindow,
+      resizeWindow,
+      setSnapEnabled,
+      setHintEnabled,
+    },
   } = useWindowKit<T>();
 
   const windowsRef = useRef(windows);
@@ -107,47 +114,57 @@ function WindowView<T extends WindowData>({
   const [interaction, setInteraction] = useState<WindowInteraction<T>>(null);
   const resolvedSnapConfig = useMemo<SnapConfig>(
     () => ({
+      enabled: config?.snap?.enabled ?? SNAP_BEHAVIOR_DEFAULTS.enabled,
       distance: config?.snap?.distance ?? SNAP_BEHAVIOR_DEFAULTS.distance,
       overlap: config?.snap?.overlap ?? SNAP_BEHAVIOR_DEFAULTS.overlap,
       visualPreview:
         config?.snap?.visualPreview ?? SNAP_BEHAVIOR_DEFAULTS.visualPreview,
     }),
     [
+      config?.snap?.enabled,
       config?.snap?.distance,
       config?.snap?.overlap,
       config?.snap?.visualPreview,
     ],
   );
-  const resolvedHintConfig = useMemo(
-    () =>
-      mergeHintConfig(
-        {
-          enabled: config?.hint?.enabled ?? HINT_BEHAVIOR_DEFAULTS.enabled,
-          distance:
-            config?.hint?.distance ??
-            resolvedSnapConfig.distance ??
-            HINT_BEHAVIOR_DEFAULTS.distance,
-          snap: {
-            enabled:
-              config?.hint?.snap?.enabled ??
-              HINT_BEHAVIOR_DEFAULTS.snap.enabled,
-            distance: config?.hint?.snap?.distance,
-            visualPreview:
-              config?.hint?.snap?.visualPreview ??
-              HINT_BEHAVIOR_DEFAULTS.snap.visualPreview,
-          },
-        } as HintConfig,
-        resolvedSnapConfig,
-      ),
-    [
-      config?.hint?.enabled,
-      config?.hint?.distance,
-      config?.hint?.snap?.distance,
-      config?.hint?.snap?.enabled,
-      config?.hint?.snap?.visualPreview,
+  const resolvedHintConfig = useMemo(() => {
+    const merged = mergeHintConfig(
+      {
+        enabled: config?.hint?.enabled ?? HINT_BEHAVIOR_DEFAULTS.enabled,
+        distance:
+          config?.hint?.distance ??
+          resolvedSnapConfig.distance ??
+          HINT_BEHAVIOR_DEFAULTS.distance,
+        snap: {
+          enabled:
+            config?.hint?.snap?.enabled ?? HINT_BEHAVIOR_DEFAULTS.snap.enabled,
+          distance: config?.hint?.snap?.distance,
+          visualPreview:
+            config?.hint?.snap?.visualPreview ??
+            HINT_BEHAVIOR_DEFAULTS.snap.visualPreview,
+        },
+      } as HintConfig,
       resolvedSnapConfig,
-    ],
-  );
+    );
+
+    const enabled = merged.enabled && hintEnabled;
+    return {
+      ...merged,
+      enabled,
+      snap: {
+        ...merged.snap,
+        enabled: merged.snap.enabled && hintEnabled,
+      },
+    };
+  }, [
+    config?.hint?.enabled,
+    config?.hint?.distance,
+    config?.hint?.snap?.distance,
+    config?.hint?.snap?.enabled,
+    config?.hint?.snap?.visualPreview,
+    hintEnabled,
+    resolvedSnapConfig,
+  ]);
   const resolvedAnimations = useMemo(
     () => ({
       entering: animations?.entering ?? windowEnteringAnimation,
@@ -220,6 +237,21 @@ function WindowView<T extends WindowData>({
     [applyWindowStyleDefaults, windows],
   );
 
+  useEffect(() => {
+    if (config?.snap?.enabled !== undefined) {
+      setSnapEnabled(config.snap.enabled);
+    }
+    if (config?.hint?.enabled !== undefined) {
+      setHintEnabled(config.hint.enabled);
+    }
+  }, [
+    config?.snap?.enabled,
+    config?.hint?.enabled,
+    setSnapEnabled,
+    setHintEnabled,
+  ]);
+
+  const hintActive = resolvedHintConfig.enabled;
   const { snapTarget, latestSnapTarget, clearSnapTarget } = useSnapTarget({
     interaction,
     windows: windowsWithDefaults,
@@ -261,7 +293,8 @@ function WindowView<T extends WindowData>({
     setCanvasSize({ width, height });
   }, []);
 
-  const hintSnapEnabled = resolvedHintConfig.snap.enabled && snapEnabled;
+  const hintSnapEnabled =
+    resolvedHintConfig.snap.enabled && hintActive && snapEnabled;
   const snapPreviewTarget =
     (resolvedSnapConfig.visualPreview && snapTarget) ||
     (resolvedHintConfig.snap.visualPreview && hintSnapEnabled
@@ -420,7 +453,7 @@ function WindowView<T extends WindowData>({
             renderHeaderVersion={renderHeaderVersionRef.current}
           />
         ))}
-        {resolvedHintConfig.enabled &&
+        {hintActive &&
           hintGuides.flatMap((guide) => {
             const isVertical = guide.orientation === 'vertical';
             const start = Math.min(guide.start, guide.end);
