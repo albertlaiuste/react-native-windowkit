@@ -117,8 +117,8 @@ function Window<T extends WindowData>({
     const minHeight = mergedWindowStyle.minHeight;
     const maxWidth = mergedWindowStyle.maxWidth ?? Number.POSITIVE_INFINITY;
     const maxHeight = mergedWindowStyle.maxHeight ?? Number.POSITIVE_INFINITY;
-    const width = window.width ?? mergedWindowStyle.width ?? minWidth;
-    const height = window.height ?? mergedWindowStyle.height ?? minHeight;
+    const width = window.width ?? minWidth;
+    const height = window.height ?? minHeight;
 
     return {
       ...window,

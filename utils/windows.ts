@@ -19,7 +19,7 @@ import {
 } from '../types/windows';
 
 type ResolvedWindowStyle = typeof WINDOW_STYLE_DEFAULTS &
-  Pick<WindowStyle, 'width' | 'height' | 'maxWidth' | 'maxHeight'>;
+  Pick<WindowStyle, 'maxWidth' | 'maxHeight'>;
 
 export type WindowStylesInput = {
   window?: WindowStyle;
@@ -150,8 +150,8 @@ export const createWindowNormalizer = <T extends WindowData>(
     };
     const minWidth = mergedStyle.minWidth;
     const minHeight = mergedStyle.minHeight;
-    const width = win.width ?? mergedStyle.width ?? minWidth;
-    const height = win.height ?? mergedStyle.height ?? minHeight;
+    const width = win.width ?? minWidth;
+    const height = win.height ?? minHeight;
 
     const cached = cache.get(win.id);
     if (

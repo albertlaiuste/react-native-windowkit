@@ -80,8 +80,6 @@ export type WindowKitProviderProps<T extends WindowData = WindowData> = {
 };
 
 export type WindowStyle = {
-  width?: number;
-  height?: number;
   minWidth?: number;
   minHeight?: number;
   maxWidth?: number;

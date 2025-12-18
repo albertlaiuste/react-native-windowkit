@@ -29,10 +29,8 @@ export const Colors = {
 
 type ResolvedWindowStyle = Omit<
   Required<WindowStyle>,
-  'width' | 'height' | 'maxWidth' | 'maxHeight'
+  'maxWidth' | 'maxHeight'
 > & {
-  width?: number;
-  height?: number;
   maxWidth?: number;
   maxHeight?: number;
 };

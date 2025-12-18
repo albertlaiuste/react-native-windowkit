@@ -336,8 +336,6 @@ You can theme windows via the `windowStyles` prop on `WindowView` (all fields op
 
 | Property | Type | Description | Default |
 | --- | --- | --- | --- |
-| `window.width` | `number` | Explicit width override; otherwise uses min width | `undefined` |
-| `window.height` | `number` | Explicit height override; otherwise uses min height | `undefined` |
 | `window.minWidth` | `number` | Minimum window width | `320` |
 | `window.minHeight` | `number` | Minimum window height | `240` |
 | `window.maxWidth` | `number` | Maximum window width | `undefined` |
