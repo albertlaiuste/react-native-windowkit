@@ -156,12 +156,9 @@ function WindowView<T extends WindowData>({
     }),
     [animations?.entering, animations?.exiting, animations?.snap],
   );
-  const resolvedShadowConfig = useMemo(
-    () => ({
-      lockedShadow: config?.lockedShadow ?? false,
-      unlockedShadow: config?.unlockedShadow ?? true,
-    }),
-    [config?.lockedShadow, config?.unlockedShadow],
+  const resolvedShadowMode = useMemo(
+    () => config?.shadow ?? 'unlocked',
+    [config?.shadow],
   );
   const resolvedHeaderConfig = useMemo(() => {
     const closeButtonConfig = config?.header?.closeButton;
@@ -398,9 +395,11 @@ function WindowView<T extends WindowData>({
             isActive={activeId === win.id || interaction?.id === win.id}
             isUnlocked={mode === 'unlocked'}
             shadowEnabled={
-              mode === 'unlocked'
-                ? resolvedShadowConfig.unlockedShadow
-                : resolvedShadowConfig.lockedShadow
+              resolvedShadowMode === true
+                ? true
+                : resolvedShadowMode === false
+                  ? false
+                  : resolvedShadowMode === mode
             }
             headerEnabled={resolvedHeaderConfig.enabled}
             closeButtonEnabled={resolvedHeaderConfig.closeButton}

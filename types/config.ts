@@ -21,8 +21,7 @@ export type HintConfig = {
 export type WindowKitConfig = {
   snap?: Partial<SnapConfig>;
   hint?: Partial<HintConfig>;
-  lockedShadow?: boolean;
-  unlockedShadow?: boolean;
+  shadow?: boolean | WindowsMode;
   header?: {
     enabled?: boolean;
     closeButton?: boolean | WindowsMode;

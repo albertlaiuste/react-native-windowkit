@@ -215,11 +215,44 @@ Defaults are JS-driven on web (no native driver) and use cubic easing/spring on 
 
 Pass `config` to `WindowView` to tweak behavior (all optional):
 
-- `snap`: `{ distance, overlap, visualPreview }` — overrides snap detection distances and whether to show the snap highlight.
-- `hint`: `{ enabled, distance, snap?: { enabled?, visualPreview?, distance? } }` — lightweight alignment guides. Lines always render when `enabled`; the nested `snap` controls whether the snap-to-hint behavior is active and whether the snap preview highlight shows (uses snap distance when omitted).
-- `lockedShadow` (default `false`): show shadows while in locked mode.
-- `unlockedShadow` (default `true`): show shadows while in unlocked mode.
-- `header`: `{ enabled?: boolean; closeButton?: boolean | 'locked' | 'unlocked' }` — toggle the header/ID bar and the close button; strings restrict the button to a specific mode.
+| Property | Type | Description | Default |
+| --- | --- | --- | --- |
+| `snap.distance` | `number` | Snap detection range in px | `32` |
+| `snap.overlap` | `number` | Area overlap required to trigger snap | `64` |
+| `snap.visualPreview` | `boolean` | Show snap highlight preview | `true` |
+| `hint.enabled` | `boolean` | Render alignment hint lines | `true` |
+| `hint.distance` | `number` | Distance from edge to show hints (falls back to snap distance) | `6` |
+| `hint.snap.enabled` | `boolean` | Enable snap-to-hint behavior | `true` |
+| `hint.snap.distance` | `number` | Snap distance for hint targets | `6` |
+| `hint.snap.visualPreview` | `boolean` | Show snap preview when snapping to hints | `true` |
+| `shadow` | `boolean \| 'locked' \| 'unlocked'` | `false` to disable, `true` for all modes, or limit to a mode | `'unlocked'` |
+| `header.enabled` | `boolean` | Render the header/ID bar | `true` |
+| `header.closeButton` | `boolean \| 'locked' \| 'unlocked'` | `true`/`false`, or `'locked'`/`'unlocked'` to restrict modes | `true` |
+
+```ts
+// Full config with defaults
+const config = {
+  snap: {
+    distance: 32,
+    overlap: 64,
+    visualPreview: true,
+  },
+  hint: {
+    enabled: true,
+    distance: 6,
+    snap: {
+      enabled: true,
+      distance: 6,
+      visualPreview: true,
+    },
+  },
+  shadow: 'unlocked', // set false to disable or true to enable in both modes
+  header: {
+    enabled: true,
+    closeButton: true, // use 'locked' or 'unlocked' to limit visibility
+  },
+};
+```
 
 ## Optional properties
 
