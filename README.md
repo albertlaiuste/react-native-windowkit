@@ -2,6 +2,23 @@
 
 Lightweight window management primitives for React Native. Drag, resize, snap, and manage focus/z-index with your own window data.
 
+## Table of contents
+
+- [Installation](#installation)
+  - [Peer dependencies](#peer-dependencies)
+- [Quick start](#quick-start)
+  - [Rendering performance](#rendering-performance)
+- [Working with `Windows`](#working-with-windows)
+- [Custom layout with `Window`](#custom-layout-with-window)
+- [Animations (override defaults)](#animations-override-defaults)
+- [Properties](#properties)
+  - [`WindowView`](#windowview)
+  - [`Window`](#window)
+  - [`WindowKitProvider`](#windowkitprovider)
+- [Configuration](#configuration)
+- [Styling](#styling)
+  - [`windowStyle` (per-window overrides)](#windowstyle-per-window-overrides)
+
 ## Installation
 
 This package assumes you already have React Native, Reanimated, and Gesture Handler set up in your app.
@@ -115,8 +132,6 @@ function Controls() {
 }
 ```
 
-Each window can optionally set `minWidth` / `minHeight` (defaults to the library minima) and `maxWidth` / `maxHeight` (defaults to unbounded; if omitted, the canvas size is the cap).
-
 ### Rendering performance
 
 `renderWindowContent` and `renderHeader` are treated as render props. If their identity changes every render (e.g., inline functions), every window re-renders. Keep them stable with `useCallback` (or a memoized component) to avoid unnecessary work:
@@ -141,13 +156,20 @@ const renderHeader = useCallback(
 );
 
 <WindowView
-  style={{ backgroundColor: '#171717' }}
   renderWindowContent={renderWindowContent}
   renderHeader={renderHeader}
 />;
 ```
 
 Tip: dashed hint lines generate segments; use small dash counts or set `dashWidth`/`dashGap` to `0` for a solid, more performant line.
+
+## Working with `Windows`
+
+`WindowData` holds the position, size, z-index, and optional per-window styling for each window. Provide an initial list to `WindowKitProvider`, then use the hook actions to keep it in sync as the user interacts:
+
+- Add/update/remove windows: `setWindows([...])`
+
+Each `WindowData` requires a unique `id`, `x`, `y`, `width`, `height`, and `zIndex`. You can optionally supply `windowStyle` to override visual bounds per window (see Styling).
 
 ## Custom layout with `Window`
 
@@ -211,6 +233,60 @@ import {
 
 Defaults are JS-driven on web (no native driver) and use cubic easing/spring on native.
 
+
+## Properties
+
+### `WindowKitProvider`
+
+| Property | Type | Description |
+| --- | --- | --- |
+| `children` | `ReactNode` | **Required.** Content that uses the window kit. |
+| `windows` | `WindowData[]` | Initial windows. |
+| `mode` | `'locked' \| 'unlocked'` | Starting mode. |
+| `snapEnabled` | `boolean` | Whether snap is initially enabled. |
+| `onWindowsChange` | `(windows: WindowData[]) => void` | Called when window list changes. |
+| `onActiveChange` | `(activeId: string \| null) => void` | Called when active window changes. |
+| `onModeChange` | `(mode: 'locked' \| 'unlocked') => void` | Called when mode toggles. |
+| `onSnapChange` | `(enabled: boolean) => void` | Called when snap enabled state changes. |
+
+### `WindowView`
+
+| Property | Type | Description |
+| --- | --- | --- |
+| `renderWindowContent` | `(window) => ReactNode` | **Required.** Renders window content. |
+| `renderWindowContentPlaceholder` | `ReactNode \| () => ReactNode` | Optional UI when there are no windows. |
+| `renderHeader` | `(props) => ReactNode` | Custom header renderer. Receives `{ window, isActive, closeButtonEnabled, onClose }`. |
+| `style` | `ViewStyle` | Container style for the `WindowView` wrapper. |
+| `canvasStyle` | `ViewStyle` | Style for the inner canvas area. |
+| `animations` | `{ entering?, exiting?, snap? }` | Animation overrides for window enter/exit and snap preview. |
+| `config` | `WindowKitConfig` | Behavior overrides (see Configuration table). |
+| `windowStyles` | `WindowStylesInput` | Visual overrides (see Styling table). |
+| `onCloseWindow` | `(id: string) => void` | Override the default close behavior. |
+
+### `Window`
+
+| Property | Type | Description |
+| --- | --- | --- |
+| `window` | `WindowData` | Window state (id/rect/zIndex/style). |
+| `canvasSize` | `CanvasSize \| null` | Canvas bounds for clamping. |
+| `isActive` | `boolean` | Whether the window is active/focused. |
+| `isUnlocked` | `boolean` | Whether the window is in unlocked mode. |
+| `onFocus` | `() => void` | Focus handler. |
+| `onMove` | `(x: number, y: number) => void` | Move handler. |
+| `onResize` | `(rect) => void` | Resize handler. Receives partial `{ x, y, width, height }`. |
+| `onRelease` | `(id, type) => void` | Called when drag/resize ends. |
+| `onInteractionChange` | `(interaction) => void` | Tracks active interaction. |
+| `renderContent` | `(window) => ReactNode` | Renderer for window contents. |
+| `renderContentVersion` | `number` | Increment to recompute renderContent memo. |
+| `renderHeader` | `(props) => ReactNode` | Custom header renderer. |
+| `renderHeaderVersion` | `number` | Increment to recompute renderHeader memo. |
+| `animations` | `{ entering?, exiting? }` | Animation overrides for this window. |
+| `styleConfig` | `ResolvedWindowStyles` | Resolved visual styles to apply. |
+| `shadowEnabled` | `boolean` | Whether shadows render. |
+| `headerEnabled` | `boolean` | Whether the header renders. |
+| `closeButtonEnabled` | `boolean` | Whether the close button renders. |
+| `onClose` | `(id: string) => void` | Close handler. |
+
 ## Configuration
 
 Pass `config` to `WindowView` to tweak behavior (all optional):
@@ -254,13 +330,56 @@ const config = {
 };
 ```
 
-## Optional properties
+## Styling
 
-- `renderHeader`: `(props) => ReactNode` — render a custom header component. Receives `{ window, isActive, closeButtonEnabled, onClose }`.
+You can theme windows via the `windowStyles` prop on `WindowView` (all fields optional) 
 
-## Styling API
-
-You can theme windows via the `windowStyles` prop on `WindowView` (all fields optional and falling back to exported defaults from `constants/windows`):
+| Property | Type | Description | Default |
+| --- | --- | --- | --- |
+| `window.width` | `number` | Explicit width override; otherwise uses min width | `undefined` |
+| `window.height` | `number` | Explicit height override; otherwise uses min height | `undefined` |
+| `window.minWidth` | `number` | Minimum window width | `320` |
+| `window.minHeight` | `number` | Minimum window height | `240` |
+| `window.maxWidth` | `number` | Maximum window width | `undefined` |
+| `window.maxHeight` | `number` | Maximum window height | `undefined` |
+| `window.borderRadius` | `number` | Window border radius | `0` |
+| `window.borderWidth` | `number` | Window border width | `3` |
+| `window.borderColorActive` | `string` | Border color when active | `'rgba(247,226,166,1.0)'` |
+| `window.borderColorInactive` | `string` | Border color when inactive | `'rgba(255,255,255,1.0)'` |
+| `window.backgroundColor` | `string` | Window background color | `'rgba(67,67,67,1)'` |
+| `snap.borderWidth` | `number` | Snap preview border width | `2` |
+| `snap.borderRadius` | `number` | Snap preview border radius | `0` |
+| `snap.borderColor` | `string` | Snap preview border color | `'rgba(247,226,166,1.0)'` |
+| `snap.backgroundColor` | `string` | Snap preview background color | `'rgba(247,226,166,0.18)'` |
+| `snap.offset` | `number` | Snap preview inset/offset in px | `6` |
+| `hint.thickness` | `number` | Hint line thickness | `2` |
+| `hint.color` | `string` | Hint line color | `'rgba(255,255,255,0.55)'` |
+| `hint.padding` | `number` | Padding around hint lines | `0` |
+| `hint.dashWidth` | `number` | Dash width (0 for solid) | `0` |
+| `hint.dashGap` | `number` | Dash gap (0 for solid) | `0` |
+| `handle.size` | `number` | Handle square size | `24` |
+| `handle.borderHitThickness` | `number` | Hit area thickness along edges | `12` |
+| `handle.cornerHitSize` | `number` | Hit area size at corners | `24` |
+| `handle.activeOpacity` | `number` | Handle overlay opacity when active | `0.25` |
+| `handle.inactiveOpacity` | `number` | Handle overlay opacity when inactive | `0` |
+| `handle.backgroundActive` | `string` | Handle background color when active | `'rgba(247,226,166,0.45)'` |
+| `handle.backgroundInactive` | `string` | Handle background color when inactive | `'rgba(255,255,255,0.25)'` |
+| `handle.borderActive` | `string` | Handle border color when active | `'rgba(247,226,166,1.0)'` |
+| `handle.borderInactive` | `string` | Handle border color when inactive | `'rgba(255,255,255,1.0)'` |
+| `header.backgroundColor` | `string` | Header background color | `'rgba(0, 0, 0, 0.25)'` |
+| `header.textColor` | `string` | Header text color | `'#ffffff'` |
+| `header.paddingHorizontal` | `number` | Header horizontal padding | `10` |
+| `header.paddingVertical` | `number` | Header vertical padding | `6` |
+| `header.closeButton.size` | `number` | Close button size | `20` |
+| `header.closeButton.opacity` | `number` | Close button opacity | `0.9` |
+| `header.closeButton.color` | `string` | Close button color | `'#ffffff'` |
+| `header.closeButton.style` | `Record<string, unknown>` | Close button style object | `{ backgroundColor: 'rgba(0,0,0,0.3)' }` |
+| `header.closeButton.icon` | `ReactNode \| null` | Custom close icon node | `null` |
+| `shadow.boxShadow` | `string` | Web box-shadow | `'0px 8px 12px rgba(0, 0, 0, 0.3)'` |
+| `shadow.shadowOpacity` | `number` | Native shadow opacity | `0.3` |
+| `shadow.shadowRadius` | `number` | Native shadow radius | `12` |
+| `shadow.shadowOffset` | `{ width: number; height: number }` | Native shadow offset | `{ width: 0, height: 8 }` |
+| `shadow.shadowColor` | `string` | Native shadow color | `'#000'` |
 
 ```tsx
 <WindowView
@@ -268,16 +387,24 @@ You can theme windows via the `windowStyles` prop on `WindowView` (all fields op
     window: {
       minWidth: 320,
       minHeight: 240,
-      borderRadius: 8,
-      borderWidth: 2,
-      borderColorActive: '#ffd966',
-      backgroundColor: '#222',
+      maxWidth: undefined,
+      maxHeight: undefined,
+      borderRadius: 0,
+      borderWidth: 3,
+      borderColorActive: 'rgba(247,226,166,1.0)',
+      borderColorInactive: 'rgba(255,255,255,1.0)',
+      backgroundColor: 'rgba(67,67,67,1)',
     },
     handle: {
       size: 24,
+      borderHitThickness: 12,
+      cornerHitSize: 24,
       activeOpacity: 0.25,
-      backgroundActive: '#ffd966',
-      backgroundInactive: '#666',
+      inactiveOpacity: 0,
+      backgroundActive: 'rgba(247,226,166,0.45)',
+      backgroundInactive: 'rgba(255,255,255,0.25)',
+      borderActive: 'rgba(247,226,166,1.0)',
+      borderInactive: 'rgba(255,255,255,1.0)',
     },
     shadow: {
       boxShadow: '0px 8px 12px rgba(0, 0, 0, 0.3)', // web
@@ -295,25 +422,24 @@ You can theme windows via the `windowStyles` prop on `WindowView` (all fields op
     },
     snap: {
       borderWidth: 2,
-      borderRadius: 8,
-      offset: 10,
-      borderColor: '#ffd966',
-      backgroundColor: 'rgba(255, 217, 102, 0.18)',
+      borderRadius: 0,
+      offset: 6,
+      borderColor: 'rgba(247,226,166,1.0)',
+      backgroundColor: 'rgba(247,226,166,0.18)',
     },
     header: {
-      backgroundColor: 'rgba(0,0,0,0.25)',
-      textColor: '#fff',
+      backgroundColor: 'rgba(0, 0, 0, 0.25)',
+      textColor: '#ffffff',
       paddingHorizontal: 10,
       paddingVertical: 6,
       closeButton: {
-        size: 26,
+        size: 20,
         opacity: 0.9,
-        color: '#fff',
+        color: '#ffffff',
         style: {
           backgroundColor: 'rgba(0,0,0,0.3)',
-          borderRadius: 14,
         },
-        // icon: <MyCloseIcon />, // optional custom icon
+        icon: null,
       },
     },
   }}
@@ -321,3 +447,16 @@ You can theme windows via the `windowStyles` prop on `WindowView` (all fields op
 ```
 
 Defaults are exported as `WINDOW_STYLE_DEFAULTS`, `HANDLE_STYLE_DEFAULTS`, `SHADOW_STYLE_DEFAULTS`, `SNAP_STYLE_DEFAULTS`, `HINT_STYLE_DEFAULTS`, `HEADER_STYLE_DEFAULTS`, and behavior defaults as `SNAP_BEHAVIOR_DEFAULTS` / `HINT_BEHAVIOR_DEFAULTS`.
+
+### `windowStyle` (per-window overrides)
+
+Set `windowStyle` on individual `WindowData` objects to override the defaults above for that window only. Supported fields:
+
+| Property | Type | Description |
+| --- | --- | --- |
+| `minWidth` / `minHeight` | `number` | Minimum size for the window. |
+| `maxWidth` / `maxHeight` | `number` | Maximum size for the window. |
+| `borderRadius` | `number` | Corner radius. |
+| `borderWidth` | `number` | Border width. |
+| `borderColorActive` / `borderColorInactive` | `string` | Border colors per active state. |
+| `backgroundColor` | `string` | Window background color. |
