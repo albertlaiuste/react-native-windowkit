@@ -36,12 +36,12 @@ function useSnapPreview({
   }, [snapSpringConfig, snapTarget, snapAnim]);
 
   const primaryEdge = snapTarget?.edges[0];
-  const horizontalEdge = snapTarget?.edges.find(
-    (edge) => edge === 'left' || edge === 'right',
-  );
-  const verticalEdge = snapTarget?.edges.find(
-    (edge) => edge === 'top' || edge === 'bottom',
-  );
+  const horizontalEdge =
+    snapTarget?.edges.find((edge) => edge === 'left' || edge === 'right') ??
+    (snapTarget?.edges.includes('centerX') ? 'centerX' : undefined);
+  const verticalEdge =
+    snapTarget?.edges.find((edge) => edge === 'top' || edge === 'bottom') ??
+    (snapTarget?.edges.includes('centerY') ? 'centerY' : undefined);
 
   const previewTransform = useMemo(() => {
     if (horizontalEdge && verticalEdge) {
@@ -61,7 +61,11 @@ function useSnapPreview({
       ];
     }
 
-    if (primaryEdge === 'left' || primaryEdge === 'right') {
+    if (
+      primaryEdge === 'left' ||
+      primaryEdge === 'right' ||
+      primaryEdge === 'centerX'
+    ) {
       return [
         {
           translateX: snapAnim.interpolate({

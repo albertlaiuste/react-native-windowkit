@@ -18,31 +18,46 @@ import {
 } from 'react-native';
 import Window from './Window';
 import { useWindowKit } from './WindowKitProvider';
-import { clampWindowToBounds, type CanvasSize } from '../utils/geometry';
+import {
+  clampWindowToBounds,
+  mergeHintConfig,
+  type CanvasSize,
+} from '../utils/geometry';
 import {
   snapSpringConfig as defaultSnapSpringConfig,
   windowEnteringAnimation,
   windowExitingAnimation,
 } from '../constants/animations';
-import { SNAP_BEHAVIOR_DEFAULTS } from '../constants/windows';
+import {
+  HINT_BEHAVIOR_DEFAULTS,
+  SNAP_BEHAVIOR_DEFAULTS,
+} from '../constants/windows';
 import useSnapTarget from '../hooks/useSnapTarget';
 import useSnapPreview from '../hooks/useSnapPreview';
+import useHintGuides from '../hooks/useHintGuides';
 import {
   type HandleStyle,
   type HeaderStyle,
   type ShadowStyle,
   type SnapStyle,
+  type HintStyle,
   type WindowStyle,
   type WindowInteraction,
   type WindowData,
   type RenderHeaderProps,
 } from '../types/windows';
-import { type WindowKitConfig, type SnapConfig } from '../types/config';
+import {
+  type WindowKitConfig,
+  type SnapConfig,
+  type HintConfig,
+} from '../types/config';
 import {
   createWindowNormalizer,
   resolveWindowStyles,
   type WindowStylesInput,
 } from '../utils/windows';
+
+const MAX_HINT_DASH_SEGMENTS = 512;
 
 type WindowViewProps<T extends WindowData> = {
   renderWindowContent: (window: T) => ReactNode;
@@ -60,6 +75,7 @@ type WindowViewProps<T extends WindowData> = {
   windowStyles?: {
     window?: WindowStyle;
     snap?: SnapStyle;
+    hint?: HintStyle;
     handle?: HandleStyle;
     header?: HeaderStyle;
     shadow?: ShadowStyle;
@@ -100,6 +116,36 @@ function WindowView<T extends WindowData>({
       config?.snap?.distance,
       config?.snap?.overlap,
       config?.snap?.visualPreview,
+    ],
+  );
+  const resolvedHintConfig = useMemo(
+    () =>
+      mergeHintConfig(
+        {
+          enabled: config?.hint?.enabled ?? HINT_BEHAVIOR_DEFAULTS.enabled,
+          distance:
+            config?.hint?.distance ??
+            resolvedSnapConfig.distance ??
+            HINT_BEHAVIOR_DEFAULTS.distance,
+          snap: {
+            enabled:
+              config?.hint?.snap?.enabled ??
+              HINT_BEHAVIOR_DEFAULTS.snap.enabled,
+            distance: config?.hint?.snap?.distance,
+            visualPreview:
+              config?.hint?.snap?.visualPreview ??
+              HINT_BEHAVIOR_DEFAULTS.snap.visualPreview,
+          },
+        } as HintConfig,
+        resolvedSnapConfig,
+      ),
+    [
+      config?.hint?.enabled,
+      config?.hint?.distance,
+      config?.hint?.snap?.distance,
+      config?.hint?.snap?.enabled,
+      config?.hint?.snap?.visualPreview,
+      resolvedSnapConfig,
     ],
   );
   const resolvedAnimations = useMemo(
@@ -184,13 +230,25 @@ function WindowView<T extends WindowData>({
     snapEnabled,
     snapConfig: resolvedSnapConfig,
   });
+  const {
+    hintTarget,
+    guides: hintGuides,
+    latestHintTarget,
+    clearHintTarget,
+  } = useHintGuides({
+    interaction,
+    windows: windowsWithDefaults,
+    canvasSize,
+    hintConfig: resolvedHintConfig,
+  });
 
   useEffect(() => {
     if (mode !== 'unlocked') {
       setInteraction(null);
       clearSnapTarget();
+      clearHintTarget();
     }
-  }, [mode, clearSnapTarget]);
+  }, [mode, clearSnapTarget, clearHintTarget]);
 
   useEffect(() => {
     if (
@@ -206,9 +264,12 @@ function WindowView<T extends WindowData>({
     setCanvasSize({ width, height });
   }, []);
 
-  const snapPreviewTarget = resolvedSnapConfig.visualPreview
-    ? snapTarget
-    : null;
+  const hintSnapEnabled = resolvedHintConfig.snap.enabled && snapEnabled;
+  const snapPreviewTarget =
+    (resolvedSnapConfig.visualPreview && snapTarget) ||
+    (resolvedHintConfig.snap.visualPreview && hintSnapEnabled
+      ? hintTarget
+      : null);
 
   const { snapAnim, previewTransform } = useSnapPreview({
     snapTarget: snapPreviewTarget,
@@ -253,12 +314,15 @@ function WindowView<T extends WindowData>({
     (id: string) => {
       if (!snapEnabled) {
         clearSnapTarget();
+        clearHintTarget();
         return;
       }
 
-      const target = latestSnapTarget();
+      const target =
+        latestSnapTarget() ?? (hintSnapEnabled ? latestHintTarget() : null);
       if (!target || target.activeId !== id) {
         clearSnapTarget();
+        clearHintTarget();
         return;
       }
 
@@ -291,8 +355,18 @@ function WindowView<T extends WindowData>({
       });
 
       clearSnapTarget();
+      clearHintTarget();
     },
-    [snapEnabled, canvasSize, resizeWindow, clearSnapTarget, latestSnapTarget],
+    [
+      snapEnabled,
+      canvasSize,
+      resizeWindow,
+      clearSnapTarget,
+      clearHintTarget,
+      latestSnapTarget,
+      hintSnapEnabled,
+      latestHintTarget,
+    ],
   );
 
   const handleClose = useCallback(
@@ -347,6 +421,119 @@ function WindowView<T extends WindowData>({
             renderHeaderVersion={renderHeaderVersionRef.current}
           />
         ))}
+        {resolvedHintConfig.enabled &&
+          hintGuides.flatMap((guide) => {
+            const isVertical = guide.orientation === 'vertical';
+            const start = Math.min(guide.start, guide.end);
+            const end = Math.max(guide.start, guide.end);
+            const length = Math.max(end - start, 0);
+            const padding = resolvedStyles.hint.padding;
+            const thickness = resolvedStyles.hint.thickness;
+            const dashWidth = resolvedStyles.hint.dashWidth;
+            const dashGap = resolvedStyles.hint.dashGap;
+            const dashEnabled =
+              dashWidth !== undefined &&
+              dashGap !== undefined &&
+              dashWidth > 0 &&
+              dashGap >= 0;
+            const style: ViewStyle = {
+              backgroundColor: resolvedStyles.hint.color,
+              borderRadius: thickness / 2,
+              ...(isVertical
+                ? {
+                    left: guide.position - thickness / 2,
+                    top: start - padding,
+                    width: thickness,
+                    height: length + padding * 2,
+                  }
+                : {
+                    left: start - padding,
+                    top: guide.position - thickness / 2,
+                    width: length + padding * 2,
+                    height: thickness,
+                  }),
+            };
+
+            if (!dashEnabled) {
+              return (
+                <View
+                  key={`hint-${guide.orientation}-${guide.position}-${guide.targetIds.join(',')}`}
+                  pointerEvents="none"
+                  style={[viewStyles.hintGuide, style]}
+                />
+              );
+            }
+
+            if ((dashWidth ?? 0) === 0 && (dashGap ?? 0) === 0) {
+              return (
+                <View
+                  key={`hint-${guide.orientation}-${guide.position}-${guide.targetIds.join(',')}`}
+                  pointerEvents="none"
+                  style={[viewStyles.hintGuide, style]}
+                />
+              );
+            }
+
+            const dashSegments: ReactNode[] = [];
+            const totalLength = length + padding * 2;
+            const baseOffset = isVertical ? start - padding : start - padding;
+            const step = dashWidth + dashGap;
+            if (step <= 0) {
+              return (
+                <View
+                  key={`hint-${guide.orientation}-${guide.position}-${guide.targetIds.join(',')}`}
+                  pointerEvents="none"
+                  style={[viewStyles.hintGuide, style]}
+                />
+              );
+            }
+            const segmentCount = Math.ceil(totalLength / step);
+            if (segmentCount > MAX_HINT_DASH_SEGMENTS) {
+              return (
+                <View
+                  key={`hint-${guide.orientation}-${guide.position}-${guide.targetIds.join(',')}`}
+                  pointerEvents="none"
+                  style={[viewStyles.hintGuide, style]}
+                />
+              );
+            }
+            let offset = 0;
+            let index = 0;
+            while (offset < totalLength) {
+              const segmentLength = Math.min(dashWidth, totalLength - offset);
+              const segmentStyle: ViewStyle = {
+                position: 'absolute',
+                backgroundColor: resolvedStyles.hint.color,
+                borderRadius: thickness / 2,
+                ...(isVertical
+                  ? {
+                      width: thickness,
+                      height: segmentLength,
+                      left: guide.position - thickness / 2,
+                      top: baseOffset + offset,
+                    }
+                  : {
+                      width: segmentLength,
+                      height: thickness,
+                      left: baseOffset + offset,
+                      top: guide.position - thickness / 2,
+                    }),
+              };
+
+              dashSegments.push(
+                <View
+                  key={`hint-${guide.orientation}-${guide.position}-${guide.targetIds.join(',')}-dash-${index}`}
+                  pointerEvents="none"
+                  style={[viewStyles.hintGuide, segmentStyle]}
+                />,
+              );
+
+              offset += step;
+              index += 1;
+            }
+
+            return dashSegments;
+          })}
         {snapPreviewTarget && (
           <Animated.View
             pointerEvents={'none'}
@@ -383,6 +570,10 @@ const viewStyles = StyleSheet.create({
   snapPreview: {
     position: 'absolute',
     borderStyle: 'dashed',
+  },
+  hintGuide: {
+    position: 'absolute',
+    opacity: 0.9,
   },
 });
 

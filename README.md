@@ -147,6 +147,8 @@ const renderHeader = useCallback(
 />;
 ```
 
+Tip: dashed hint lines generate segments; use small dash counts or set `dashWidth`/`dashGap` to `0` for a solid, more performant line.
+
 ## Custom layout with `Window`
 
 Build your own layout (grid, split view, etc.) but reuse the gestures/handles:
@@ -214,9 +216,13 @@ Defaults are JS-driven on web (no native driver) and use cubic easing/spring on 
 Pass `config` to `WindowView` to tweak behavior (all optional):
 
 - `snap`: `{ distance, overlap, visualPreview }` — overrides snap detection distances and whether to show the snap highlight.
+- `hint`: `{ enabled, distance, snap?: { enabled?, visualPreview?, distance? } }` — lightweight alignment guides. Lines always render when `enabled`; the nested `snap` controls whether the snap-to-hint behavior is active and whether the snap preview highlight shows (uses snap distance when omitted).
 - `lockedShadow` (default `false`): show shadows while in locked mode.
 - `unlockedShadow` (default `true`): show shadows while in unlocked mode.
 - `header`: `{ enabled?: boolean; closeButton?: boolean | 'locked' | 'unlocked' }` — toggle the header/ID bar and the close button; strings restrict the button to a specific mode.
+
+## Optional properties
+
 - `renderHeader`: `(props) => ReactNode` — render a custom header component. Receives `{ window, isActive, closeButtonEnabled, onClose }`.
 
 ## Styling API
@@ -247,6 +253,13 @@ You can theme windows via the `windowStyles` prop on `WindowView` (all fields op
       shadowOffset: { width: 0, height: 8 }, // native
       shadowColor: '#000', // native
     },
+    hint: {
+      thickness: 2,
+      padding: 0,
+      color: 'rgba(255,255,255,0.55)',
+      dashWidth: 0,
+      dashGap: 0,
+    },
     snap: {
       borderWidth: 2,
       borderRadius: 8,
@@ -274,4 +287,4 @@ You can theme windows via the `windowStyles` prop on `WindowView` (all fields op
 />
 ```
 
-Defaults are exported as `WINDOW_STYLE_DEFAULTS`, `HANDLE_STYLE_DEFAULTS`, `SHADOW_STYLE_DEFAULTS`, `SNAP_STYLE_DEFAULTS`, `HEADER_STYLE_DEFAULTS`, and snap behavior defaults as `SNAP_BEHAVIOR_DEFAULTS`.
+Defaults are exported as `WINDOW_STYLE_DEFAULTS`, `HANDLE_STYLE_DEFAULTS`, `SHADOW_STYLE_DEFAULTS`, `SNAP_STYLE_DEFAULTS`, `HINT_STYLE_DEFAULTS`, `HEADER_STYLE_DEFAULTS`, and behavior defaults as `SNAP_BEHAVIOR_DEFAULTS` / `HINT_BEHAVIOR_DEFAULTS`.

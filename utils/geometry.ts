@@ -1,12 +1,18 @@
 import {
   SNAP_BEHAVIOR_DEFAULTS,
   WINDOW_STYLE_DEFAULTS,
+  HINT_BEHAVIOR_DEFAULTS,
 } from '../constants/windows';
-import { type SnapConfig } from '../types/config';
+import {
+  type HintConfig,
+  type HintSnapConfig,
+  type SnapConfig,
+} from '../types/config';
 import {
   type CanvasSize,
   type SnapEdge,
   type SnapCandidate,
+  type HintGuide,
 } from '../types/geometry';
 import { type ResizeDirection, type WindowData } from '../types/windows';
 
@@ -21,6 +27,12 @@ const defaultSnapConfig: SnapConfig = {
   distance: SNAP_BEHAVIOR_DEFAULTS.distance,
   overlap: SNAP_BEHAVIOR_DEFAULTS.overlap,
   visualPreview: SNAP_BEHAVIOR_DEFAULTS.visualPreview,
+};
+
+const defaultHintSnapConfig: Required<HintSnapConfig> = {
+  enabled: HINT_BEHAVIOR_DEFAULTS.snap.enabled,
+  distance: HINT_BEHAVIOR_DEFAULTS.snap.distance,
+  visualPreview: HINT_BEHAVIOR_DEFAULTS.snap.visualPreview,
 };
 
 const windowStyleFor = (window: WindowData) => ({
@@ -50,6 +62,23 @@ const mergeSnapConfig = (config: SnapConfig = defaultSnapConfig) => ({
   distance: config.distance ?? defaultSnapConfig.distance,
   overlap: config.overlap ?? defaultSnapConfig.overlap,
   visualPreview: config.visualPreview ?? defaultSnapConfig.visualPreview,
+});
+
+export const mergeHintConfig = (
+  hint: HintConfig = { enabled: HINT_BEHAVIOR_DEFAULTS.enabled },
+  snap: SnapConfig = defaultSnapConfig,
+) => ({
+  enabled: hint.enabled ?? HINT_BEHAVIOR_DEFAULTS.enabled,
+  distance: hint.distance ?? snap.distance ?? HINT_BEHAVIOR_DEFAULTS.distance,
+  snap: {
+    enabled: hint.snap?.enabled ?? defaultHintSnapConfig.enabled ?? true,
+    distance:
+      hint.snap?.distance ?? snap.distance ?? defaultHintSnapConfig.distance,
+    visualPreview:
+      hint.snap?.visualPreview ??
+      snap.visualPreview ??
+      defaultHintSnapConfig.visualPreview,
+  },
 });
 
 const pickBestSnap = (candidates: SnapCandidate[]) =>
@@ -108,6 +137,51 @@ const windowEdges = (window: WindowData): Edges => ({
   bottom: window.y + window.height,
 });
 
+const canvasToWindow = (canvas?: CanvasSize | null): WindowData | null =>
+  canvas
+    ? {
+        id: '__canvas__',
+        x: 0,
+        y: 0,
+        width: canvas.width,
+        height: canvas.height,
+        zIndex: 0,
+      }
+    : null;
+
+type AxisCandidate = {
+  window: WindowData;
+  guide: HintGuide;
+  edge: SnapEdge;
+  distance: number;
+  targetIds: string[];
+};
+
+const buildGuide = (
+  activeId: string,
+  targetId: string,
+  orientation: HintGuide['orientation'],
+  position: number,
+  activeEdges: Edges,
+  targetEdges: Edges,
+  edge: SnapEdge,
+): HintGuide => {
+  const isVertical = orientation === 'vertical';
+  return {
+    activeId,
+    targetIds: [targetId],
+    orientation,
+    position,
+    start: isVertical
+      ? Math.min(activeEdges.top, targetEdges.top)
+      : Math.min(activeEdges.left, targetEdges.left),
+    end: isVertical
+      ? Math.max(activeEdges.bottom, targetEdges.bottom)
+      : Math.max(activeEdges.right, targetEdges.right),
+    edge,
+  };
+};
+
 const computeOverlap = (
   startA: number,
   endA: number,
@@ -121,6 +195,16 @@ const computeGap = (
   startB: number,
   endB: number,
 ) => Math.max(startB - endA, startA - endB, 0);
+
+const pickBestAxisCandidate = (
+  current: AxisCandidate | null,
+  next: AxisCandidate,
+) => {
+  if (!current || next.distance < current.distance) {
+    return next;
+  }
+  return current;
+};
 
 const withinSnapThreshold = (
   overlap: number,
@@ -152,6 +236,45 @@ const selectBestTarget = (
   ]);
 
   return combined ?? closestSingle;
+};
+
+const combineHintTargets = (
+  active: WindowData,
+  horizontal: AxisCandidate | null,
+  vertical: AxisCandidate | null,
+  canvas?: CanvasSize,
+): SnapCandidate | null => {
+  if (!horizontal && !vertical) {
+    return null;
+  }
+
+  const targetIds = Array.from(
+    new Set([...(horizontal?.targetIds ?? []), ...(vertical?.targetIds ?? [])]),
+  );
+  const window = clampWindowToBounds(
+    {
+      ...active,
+      ...(horizontal
+        ? { x: horizontal.window.x, width: horizontal.window.width }
+        : {}),
+      ...(vertical
+        ? { y: vertical.window.y, height: vertical.window.height }
+        : {}),
+    },
+    canvas,
+  );
+  const distance = (horizontal?.distance ?? 0) + (vertical?.distance ?? 0);
+
+  return {
+    activeId: active.id,
+    targetIds,
+    edges: [
+      ...(horizontal ? [horizontal.edge] : []),
+      ...(vertical ? [vertical.edge] : []),
+    ],
+    window,
+    distance: distance || horizontal?.distance || vertical?.distance || 0,
+  };
 };
 
 export const clampWindowToBounds = (
@@ -193,6 +316,206 @@ export const clampWindowToBounds = (
     y,
     width: Math.max(width, 0),
     height: Math.max(height, 0),
+  };
+};
+
+const buildHintAxisCandidates = (
+  active: WindowData,
+  target: WindowData,
+  canvas: CanvasSize | null | undefined,
+  limitDistance: number,
+): {
+  horizontal: AxisCandidate | null;
+  vertical: AxisCandidate | null;
+} => {
+  const activeEdges = windowEdges(active);
+  const targetEdges = windowEdges(target);
+  const activeCenterX = (activeEdges.left + activeEdges.right) / 2;
+  const targetCenterX = (targetEdges.left + targetEdges.right) / 2;
+  const activeCenterY = (activeEdges.top + activeEdges.bottom) / 2;
+  const targetCenterY = (targetEdges.top + targetEdges.bottom) / 2;
+
+  let horizontal: AxisCandidate | null = null;
+  let vertical: AxisCandidate | null = null;
+
+  const considerHorizontal = (
+    edge: Extract<SnapEdge, 'left' | 'right' | 'centerX'>,
+    targetEdge: number,
+  ) => {
+    const activePosition =
+      edge === 'left'
+        ? activeEdges.left
+        : edge === 'right'
+          ? activeEdges.right
+          : activeCenterX;
+    const distance = Math.abs(activePosition - targetEdge);
+    if (distance > limitDistance) {
+      return;
+    }
+
+    let x = active.x;
+    if (edge === 'left') {
+      x = targetEdge;
+    } else if (edge === 'right') {
+      x = targetEdge - active.width;
+    } else {
+      x = targetEdge - active.width / 2;
+    }
+
+    const candidate: AxisCandidate = {
+      window: clampWindowToBounds({ ...active, x }, canvas ?? undefined),
+      guide: buildGuide(
+        active.id,
+        target.id,
+        'vertical',
+        targetEdge,
+        activeEdges,
+        targetEdges,
+        edge,
+      ),
+      edge,
+      targetIds: [target.id],
+      distance,
+    };
+
+    horizontal = pickBestAxisCandidate(horizontal, candidate);
+  };
+
+  const considerVertical = (
+    edge: Extract<SnapEdge, 'top' | 'bottom' | 'centerY'>,
+    targetEdge: number,
+  ) => {
+    const activePosition =
+      edge === 'top'
+        ? activeEdges.top
+        : edge === 'bottom'
+          ? activeEdges.bottom
+          : activeCenterY;
+    const distance = Math.abs(activePosition - targetEdge);
+    if (distance > limitDistance) {
+      return;
+    }
+
+    let y = active.y;
+    if (edge === 'top') {
+      y = targetEdge;
+    } else if (edge === 'bottom') {
+      y = targetEdge - active.height;
+    } else {
+      y = targetEdge - active.height / 2;
+    }
+
+    const candidate: AxisCandidate = {
+      window: clampWindowToBounds({ ...active, y }, canvas ?? undefined),
+      guide: buildGuide(
+        active.id,
+        target.id,
+        'horizontal',
+        targetEdge,
+        activeEdges,
+        targetEdges,
+        edge,
+      ),
+      edge,
+      targetIds: [target.id],
+      distance,
+    };
+
+    vertical = pickBestAxisCandidate(vertical, candidate);
+  };
+
+  considerHorizontal('left', targetEdges.left);
+  considerHorizontal('left', targetEdges.right);
+  considerHorizontal('right', targetEdges.left);
+  considerHorizontal('right', targetEdges.right);
+  considerHorizontal('centerX', targetCenterX);
+
+  considerVertical('top', targetEdges.top);
+  considerVertical('top', targetEdges.bottom);
+  considerVertical('bottom', targetEdges.top);
+  considerVertical('bottom', targetEdges.bottom);
+  considerVertical('centerY', targetCenterY);
+
+  return { horizontal, vertical };
+};
+
+export const computeDragHintTarget = (
+  active: WindowData,
+  others: WindowData[],
+  canvas: CanvasSize | null | undefined,
+  hintConfig: ReturnType<typeof mergeHintConfig>,
+): { target: SnapCandidate | null; guides: HintGuide[] } => {
+  const hintDistance = hintConfig.distance;
+  const snapDistance = hintConfig.snap.distance ?? hintDistance;
+  const canvasWindow = canvasToWindow(canvas);
+  const targets = canvasWindow ? [...others, canvasWindow] : others;
+
+  let guideHorizontal: AxisCandidate | null = null;
+  let guideVertical: AxisCandidate | null = null;
+  let snapHorizontal: AxisCandidate | null = null;
+  let snapVertical: AxisCandidate | null = null;
+
+  targets.forEach((target) => {
+    if (target.id === active.id) {
+      return;
+    }
+
+    const guideCandidates = buildHintAxisCandidates(
+      active,
+      target,
+      canvas,
+      hintDistance,
+    );
+    const snapCandidates = buildHintAxisCandidates(
+      active,
+      target,
+      canvas,
+      snapDistance,
+    );
+    if (guideCandidates.horizontal) {
+      guideHorizontal = pickBestAxisCandidate(
+        guideHorizontal,
+        guideCandidates.horizontal,
+      );
+    }
+    if (guideCandidates.vertical) {
+      guideVertical = pickBestAxisCandidate(
+        guideVertical,
+        guideCandidates.vertical,
+      );
+    }
+    if (snapCandidates.horizontal) {
+      snapHorizontal = pickBestAxisCandidate(
+        snapHorizontal,
+        snapCandidates.horizontal,
+      );
+    }
+    if (snapCandidates.vertical) {
+      snapVertical = pickBestAxisCandidate(
+        snapVertical,
+        snapCandidates.vertical,
+      );
+    }
+  });
+
+  const guides: HintGuide[] = [];
+  const horizontalGuide = (guideHorizontal as AxisCandidate | null)?.guide;
+  if (horizontalGuide) {
+    guides.push(horizontalGuide);
+  }
+  const verticalGuide = (guideVertical as AxisCandidate | null)?.guide;
+  if (verticalGuide) {
+    guides.push(verticalGuide);
+  }
+
+  return {
+    target: combineHintTargets(
+      active,
+      snapHorizontal,
+      snapVertical,
+      canvas ?? undefined,
+    ),
+    guides,
   };
 };
 
@@ -655,8 +978,192 @@ export const computeResizeSnapTarget = (
   );
 };
 
+export const computeResizeHintTarget = (
+  active: WindowData,
+  others: WindowData[],
+  direction: ResizeDirection,
+  canvas: CanvasSize | null | undefined,
+  hintConfig: ReturnType<typeof mergeHintConfig>,
+): { target: SnapCandidate | null; guides: HintGuide[] } => {
+  const hintDistance = hintConfig.distance;
+  const snapDistance = hintConfig.snap.distance ?? hintDistance;
+  const activeEdges = windowEdges(active);
+  const canvasWindow = canvasToWindow(canvas);
+  const targets = canvasWindow ? [...others, canvasWindow] : others;
+
+  let guideHorizontal: AxisCandidate | null = null;
+  let guideVertical: AxisCandidate | null = null;
+  let snapHorizontal: AxisCandidate | null = null;
+  let snapVertical: AxisCandidate | null = null;
+
+  const movesTop =
+    direction === 'n' || direction === 'ne' || direction === 'nw';
+  const movesBottom =
+    direction === 's' || direction === 'se' || direction === 'sw';
+  const movesRight =
+    direction === 'e' || direction === 'ne' || direction === 'se';
+  const movesLeft =
+    direction === 'w' || direction === 'nw' || direction === 'sw';
+
+  const considerHorizontal = (
+    edge: Extract<SnapEdge, 'left' | 'right'>,
+    targetEdge: number,
+    target: WindowData,
+  ) => {
+    if ((edge === 'left' && !movesLeft) || (edge === 'right' && !movesRight)) {
+      return;
+    }
+
+    const distance =
+      edge === 'left'
+        ? Math.abs(activeEdges.left - targetEdge)
+        : Math.abs(activeEdges.right - targetEdge);
+    if (distance > hintDistance && distance > snapDistance) {
+      return;
+    }
+
+    let next: WindowData;
+    if (edge === 'right') {
+      next = clampWindowToBounds(
+        { ...active, width: targetEdge - active.x },
+        canvas ?? undefined,
+      );
+    } else {
+      next = clampWindowToBounds(
+        {
+          ...active,
+          x: targetEdge,
+          width: activeEdges.right - targetEdge,
+        },
+        canvas ?? undefined,
+      );
+    }
+
+    const targetEdges = windowEdges(target);
+    const candidate: AxisCandidate = {
+      window: next,
+      edge,
+      targetIds: [target.id],
+      distance,
+      guide: buildGuide(
+        active.id,
+        target.id,
+        'vertical',
+        targetEdge,
+        activeEdges,
+        targetEdges,
+        edge,
+      ),
+    };
+
+    if (distance <= hintDistance) {
+      guideHorizontal = pickBestAxisCandidate(guideHorizontal, candidate);
+    }
+    if (distance <= snapDistance) {
+      snapHorizontal = pickBestAxisCandidate(snapHorizontal, candidate);
+    }
+  };
+
+  const considerVertical = (
+    edge: Extract<SnapEdge, 'top' | 'bottom'>,
+    targetEdge: number,
+    target: WindowData,
+  ) => {
+    if ((edge === 'top' && !movesTop) || (edge === 'bottom' && !movesBottom)) {
+      return;
+    }
+
+    const distance =
+      edge === 'top'
+        ? Math.abs(activeEdges.top - targetEdge)
+        : Math.abs(activeEdges.bottom - targetEdge);
+    if (distance > hintDistance && distance > snapDistance) {
+      return;
+    }
+
+    let next: WindowData;
+    if (edge === 'bottom') {
+      next = clampWindowToBounds(
+        { ...active, height: targetEdge - active.y },
+        canvas ?? undefined,
+      );
+    } else {
+      next = clampWindowToBounds(
+        {
+          ...active,
+          y: targetEdge,
+          height: activeEdges.bottom - targetEdge,
+        },
+        canvas ?? undefined,
+      );
+    }
+
+    const targetEdges = windowEdges(target);
+    const candidate: AxisCandidate = {
+      window: next,
+      edge,
+      targetIds: [target.id],
+      distance,
+      guide: buildGuide(
+        active.id,
+        target.id,
+        'horizontal',
+        targetEdge,
+        activeEdges,
+        targetEdges,
+        edge,
+      ),
+    };
+
+    if (distance <= hintDistance) {
+      guideVertical = pickBestAxisCandidate(guideVertical, candidate);
+    }
+    if (distance <= snapDistance) {
+      snapVertical = pickBestAxisCandidate(snapVertical, candidate);
+    }
+  };
+
+  targets.forEach((target) => {
+    if (target.id === active.id) {
+      return;
+    }
+
+    const targetEdges = windowEdges(target);
+    considerHorizontal('left', targetEdges.left, target);
+    considerHorizontal('left', targetEdges.right, target);
+    considerHorizontal('right', targetEdges.left, target);
+    considerHorizontal('right', targetEdges.right, target);
+
+    considerVertical('top', targetEdges.top, target);
+    considerVertical('top', targetEdges.bottom, target);
+    considerVertical('bottom', targetEdges.top, target);
+    considerVertical('bottom', targetEdges.bottom, target);
+  });
+
+  const guides: HintGuide[] = [];
+  const horizontalGuide = (guideHorizontal as AxisCandidate | null)?.guide;
+  if (horizontalGuide) {
+    guides.push(horizontalGuide);
+  }
+  const verticalGuide = (guideVertical as AxisCandidate | null)?.guide;
+  if (verticalGuide) {
+    guides.push(verticalGuide);
+  }
+
+  return {
+    target: combineHintTargets(
+      active,
+      snapHorizontal,
+      snapVertical,
+      canvas ?? undefined,
+    ),
+    guides,
+  };
+};
+
 export {
   type CanvasSize,
   type SnapEdge,
   type SnapCandidate,
+  type HintGuide,
 } from '../types/geometry';

@@ -2,8 +2,11 @@
 
 import {
   clampWindowToBounds,
+  computeDragHintTarget,
   computeDragSnapTarget,
+  computeResizeHintTarget,
   computeResizeSnapTarget,
+  mergeHintConfig,
   type SnapCandidate,
 } from '../geometry';
 import {
@@ -145,5 +148,95 @@ describe('computeResizeSnapTarget', () => {
     expect(target?.window.x).toBe(100);
     expect(target?.window.y).toBe(100);
     expect(target?.targetIds).toEqual(['below']);
+  });
+});
+
+describe('computeDragHintTarget', () => {
+  const hintConfig = mergeHintConfig(
+    {
+      enabled: true,
+      distance: 6,
+      snap: {
+        enabled: true,
+        distance: 6,
+        overlap: SNAP_BEHAVIOR_DEFAULTS.overlap,
+        visualPreview: true,
+      },
+    },
+    baseConfig,
+  );
+
+  it('returns guides when aligning edges without overlap', () => {
+    const active = makeWindow({
+      id: 'active',
+      x: 100,
+      y: 0,
+      width: 200,
+      height: 200,
+    });
+    const distant = makeWindow({
+      id: 'distant',
+      x: 100,
+      y: 600,
+      width: 220,
+      height: 160,
+    });
+
+    const result = computeDragHintTarget(
+      active,
+      [distant],
+      { width: 1200, height: 1200 },
+      hintConfig,
+    );
+
+    expect(result.guides).toHaveLength(2);
+    expect(result.target?.edges).toContain('left');
+    expect(result.target?.targetIds).toContain('distant');
+  });
+});
+
+describe('computeResizeHintTarget', () => {
+  const hintConfig = mergeHintConfig(
+    {
+      enabled: true,
+      distance: 6,
+      snap: {
+        enabled: true,
+        distance: 6,
+        overlap: SNAP_BEHAVIOR_DEFAULTS.overlap,
+        visualPreview: true,
+      },
+    },
+    baseConfig,
+  );
+
+  it('suggests a hint when resizing toward a nearby edge', () => {
+    const active = makeWindow({
+      id: 'active',
+      x: 100,
+      y: 100,
+      width: 290,
+      height: 200,
+      windowStyle: { minWidth: 100 },
+    });
+    const neighbor = makeWindow({
+      id: 'neighbor',
+      x: 396,
+      y: 120,
+      width: 180,
+      height: 160,
+    });
+
+    const result = computeResizeHintTarget(
+      active,
+      [neighbor],
+      'e',
+      { width: 1000, height: 800 },
+      hintConfig,
+    );
+
+    expect(result.guides).toHaveLength(1);
+    expect(result.target?.edges).toContain('right');
+    expect(result.target?.window.width).toBe(296);
   });
 });

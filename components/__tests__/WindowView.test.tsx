@@ -88,6 +88,16 @@ jest.mock('../WindowKitProvider', () => ({
   useWindowKit: jest.fn(),
 }));
 
+jest.mock('../../hooks/useHintGuides', () => ({
+  __esModule: true,
+  default: () => ({
+    hintTarget: null,
+    guides: [],
+    latestHintTarget: () => null,
+    clearHintTarget: jest.fn(),
+  }),
+}));
+
 jest.mock('../Window', () => {
   const comparator = (prev: any, next: any) =>
     prev.styleConfig === next.styleConfig &&

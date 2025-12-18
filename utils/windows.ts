@@ -4,6 +4,7 @@ import {
   SHADOW_STYLE_DEFAULTS,
   SNAP_STYLE_DEFAULTS,
   WINDOW_STYLE_DEFAULTS,
+  HINT_STYLE_DEFAULTS,
   buildBorderHitAreas,
   buildHandleLayouts,
 } from '../constants/windows';
@@ -12,6 +13,7 @@ import {
   type HeaderStyle,
   type ShadowStyle,
   type SnapStyle,
+  type HintStyle,
   type WindowData,
   type WindowStyle,
 } from '../types/windows';
@@ -22,6 +24,7 @@ type ResolvedWindowStyle = typeof WINDOW_STYLE_DEFAULTS &
 export type WindowStylesInput = {
   window?: WindowStyle;
   snap?: SnapStyle;
+  hint?: HintStyle;
   handle?: HandleStyle;
   header?: HeaderStyle;
   shadow?: ShadowStyle;
@@ -30,6 +33,7 @@ export type WindowStylesInput = {
 export type ResolvedWindowStyles = {
   window: typeof WINDOW_STYLE_DEFAULTS;
   snap: typeof SNAP_STYLE_DEFAULTS;
+  hint: typeof HINT_STYLE_DEFAULTS;
   handle: typeof HANDLE_STYLE_DEFAULTS;
   header: typeof HEADER_STYLE_DEFAULTS;
   shadow: typeof SHADOW_STYLE_DEFAULTS;
@@ -53,6 +57,7 @@ export const shallowEqualWindowStyles = (
   const groups: Array<keyof NonNullable<WindowStylesInput>> = [
     'window',
     'snap',
+    'hint',
     'handle',
     'header',
     'shadow',
@@ -90,6 +95,7 @@ export const resolveWindowStyles = (
 
   const windowStyle = { ...WINDOW_STYLE_DEFAULTS, ...input?.window };
   const snapStyle = { ...SNAP_STYLE_DEFAULTS, ...input?.snap };
+  const hintStyle = { ...HINT_STYLE_DEFAULTS, ...input?.hint };
   const handleStyle = { ...HANDLE_STYLE_DEFAULTS, ...input?.handle };
   const headerStyle = {
     ...HEADER_STYLE_DEFAULTS,
@@ -103,6 +109,7 @@ export const resolveWindowStyles = (
   const resolved: ResolvedWindowStyles = {
     window: windowStyle,
     snap: snapStyle,
+    hint: hintStyle,
     handle: handleStyle,
     header: headerStyle,
     shadow: shadowStyle,

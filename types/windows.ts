@@ -109,6 +109,14 @@ export type SnapStyle = {
   offset?: number;
 };
 
+export type HintStyle = {
+  thickness?: number;
+  color?: string;
+  padding?: number;
+  dashWidth?: number;
+  dashGap?: number;
+};
+
 export type HandleStyle = {
   size?: number;
   borderHitThickness?: number;

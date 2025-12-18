@@ -4,6 +4,7 @@ import {
   type ShadowStyle,
   type ResizeDirection,
   type SnapStyle,
+  type HintStyle,
   type WindowStyle,
 } from '../types/windows';
 
@@ -22,6 +23,7 @@ export const Colors = {
     overlayBackground: 'rgba(255,255,255,0.12)',
     overlayBorder: 'rgba(255,255,255,0.35)',
     snapPreviewBackground: 'rgba(247,226,166,0.18)',
+    hintLine: 'rgba(255,255,255,0.55)',
   },
 };
 
@@ -61,6 +63,14 @@ export const SNAP_STYLE_DEFAULTS: Required<SnapStyle> = {
   offset: 6,
 };
 
+export const HINT_STYLE_DEFAULTS: Required<HintStyle> = {
+  thickness: 2,
+  color: Colors.windows.hintLine,
+  padding: 0,
+  dashWidth: 0,
+  dashGap: 0,
+};
+
 export const HANDLE_STYLE_DEFAULTS: Required<HandleStyle> = {
   size: 24,
   borderHitThickness: 12,
@@ -93,6 +103,16 @@ export const SNAP_BEHAVIOR_DEFAULTS = {
   distance: 32,
   overlap: 64,
   visualPreview: true,
+};
+
+export const HINT_BEHAVIOR_DEFAULTS = {
+  enabled: true,
+  distance: 6,
+  snap: {
+    enabled: true,
+    distance: 6,
+    visualPreview: true,
+  },
 };
 
 export const buildHandleLayouts = (size: number) =>
