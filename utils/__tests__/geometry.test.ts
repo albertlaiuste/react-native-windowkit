@@ -97,6 +97,37 @@ describe('computeDragSnapTarget', () => {
     expect(target?.distance).toBe(20);
   });
 
+  it('respects window gaps when snapping to neighbors', () => {
+    const active = makeWindow({
+      id: 'active',
+      x: 80,
+      y: 100,
+      width: 300,
+      height: 300,
+      windowStyle: { gaps: 20 },
+    });
+    const neighbor = makeWindow({
+      id: 'neighbor',
+      x: 420,
+      y: 100,
+      width: 300,
+      height: 300,
+    });
+
+    const target = computeDragSnapTarget(
+      active,
+      [neighbor],
+      undefined,
+      null,
+      baseConfig,
+    );
+
+    expect(target).not.toBeNull();
+    expect(target?.edges).toEqual(expect.arrayContaining(['right']));
+    expect(target?.window.x).toBe(100);
+    expect(target?.distance).toBe(20);
+  });
+
   it('reuses the sticky target when still within range', () => {
     const sticky: SnapCandidate = {
       activeId: 'active',

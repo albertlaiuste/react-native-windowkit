@@ -38,6 +38,7 @@ type ResolvedWindowStyle = Omit<
 export const WINDOW_STYLE_DEFAULTS: ResolvedWindowStyle = {
   minWidth: 320,
   minHeight: 240,
+  gaps: 0,
   borderRadius: 0,
   borderWidth: 3,
   borderColorActive: Colors.windows.borderActive,

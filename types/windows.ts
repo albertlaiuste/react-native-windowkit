@@ -16,6 +16,7 @@ export type WindowData = {
       | 'minHeight'
       | 'maxWidth'
       | 'maxHeight'
+      | 'gaps'
       | 'borderRadius'
       | 'borderWidth'
       | 'borderColorActive'
@@ -87,6 +88,7 @@ export type WindowStyle = {
   minHeight?: number;
   maxWidth?: number;
   maxHeight?: number;
+  gaps?: number;
   borderRadius?: number;
   borderWidth?: number;
   borderColorActive?: string;

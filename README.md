@@ -378,6 +378,7 @@ You can theme windows via the `windowStyles` prop on `WindowView` (all fields op
 | `window.minHeight` | `number` | Minimum window height | `240` |
 | `window.maxWidth` | `number` | Maximum window width | `undefined` |
 | `window.maxHeight` | `number` | Maximum window height | `undefined` |
+| `window.gaps` | `number` | Default gap between windows when snapping | `0` |
 | `window.borderRadius` | `number` | Window border radius | `0` |
 | `window.borderWidth` | `number` | Window border width | `3` |
 | `window.borderColorActive` | `string` | Border color when active | `'rgba(247,226,166,1.0)'` |
@@ -425,6 +426,7 @@ You can theme windows via the `windowStyles` prop on `WindowView` (all fields op
       minHeight: 240,
       maxWidth: undefined,
       maxHeight: undefined,
+      gaps: 0,
       borderRadius: 0,
       borderWidth: 3,
       borderColorActive: 'rgba(247,226,166,1.0)',
@@ -492,6 +494,7 @@ Set `windowStyle` on individual `WindowData` objects to override the defaults ab
 | --- | --- | --- |
 | `minWidth` / `minHeight` | `number` | Minimum size for the window. |
 | `maxWidth` / `maxHeight` | `number` | Maximum size for the window. |
+| `gaps` | `number` | Gap between this window and others when snapping. |
 | `borderRadius` | `number` | Corner radius. |
 | `borderWidth` | `number` | Border width. |
 | `borderColorActive` / `borderColorInactive` | `string` | Border colors per active state. |

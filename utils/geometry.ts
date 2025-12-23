@@ -59,6 +59,11 @@ export const resolveMaxHeight = (window: WindowData, canvas?: CanvasSize) => {
   return Math.min(custom, canvasLimit);
 };
 
+const resolveWindowGaps = (window: WindowData) => windowStyleFor(window).gaps;
+
+const resolvePairGaps = (active: WindowData, target: WindowData) =>
+  Math.max(resolveWindowGaps(active) ?? 0, resolveWindowGaps(target) ?? 0);
+
 const mergeSnapConfig = (config: SnapConfig = defaultSnapConfig) => ({
   enabled: config.enabled ?? defaultSnapConfig.enabled,
   distance: config.distance ?? defaultSnapConfig.distance,
@@ -336,7 +341,6 @@ const buildHintAxisCandidates = (
   const targetCenterX = (targetEdges.left + targetEdges.right) / 2;
   const activeCenterY = (activeEdges.top + activeEdges.bottom) / 2;
   const targetCenterY = (targetEdges.top + targetEdges.bottom) / 2;
-
   let horizontal: AxisCandidate | null = null;
   let vertical: AxisCandidate | null = null;
 
@@ -562,6 +566,7 @@ export const computeDragSnapTarget = (
     }
 
     const otherEdges = windowEdges(other);
+    const gap = resolvePairGaps(active, other);
 
     const verticalOverlap = computeOverlap(
       activeEdges.top,
@@ -602,7 +607,9 @@ export const computeDragSnapTarget = (
     );
 
     if (verticallyAligned) {
-      const distanceToRight = Math.abs(otherEdges.left - activeEdges.right);
+      const rightGapEdge = otherEdges.left - gap;
+      const leftGapEdge = otherEdges.right + gap;
+      const distanceToRight = Math.abs(rightGapEdge - activeEdges.right);
       const distanceToSameRight = Math.abs(
         otherEdges.right - activeEdges.right,
       );
@@ -612,7 +619,7 @@ export const computeDragSnapTarget = (
           distanceToRight,
           {
             ...active,
-            x: otherEdges.left - active.width,
+            x: rightGapEdge - active.width,
             y: active.y,
           },
           other.id,
@@ -632,7 +639,7 @@ export const computeDragSnapTarget = (
         );
       }
 
-      const distanceToLeft = Math.abs(activeEdges.left - otherEdges.right);
+      const distanceToLeft = Math.abs(activeEdges.left - leftGapEdge);
       const distanceToSameLeft = Math.abs(activeEdges.left - otherEdges.left);
       if (distanceToLeft <= snapDistance) {
         consider(
@@ -640,7 +647,7 @@ export const computeDragSnapTarget = (
           distanceToLeft,
           {
             ...active,
-            x: otherEdges.right,
+            x: leftGapEdge,
             y: active.y,
           },
           other.id,
@@ -662,7 +669,9 @@ export const computeDragSnapTarget = (
     }
 
     if (horizontallyAligned) {
-      const distanceToBottom = Math.abs(activeEdges.top - otherEdges.bottom);
+      const topGapEdge = otherEdges.bottom + gap;
+      const bottomGapEdge = otherEdges.top - gap;
+      const distanceToBottom = Math.abs(activeEdges.top - topGapEdge);
       const distanceToSameBottom = Math.abs(
         activeEdges.bottom - otherEdges.bottom,
       );
@@ -672,14 +681,14 @@ export const computeDragSnapTarget = (
           distanceToBottom,
           {
             ...active,
-            y: otherEdges.bottom,
+            y: topGapEdge,
             x: active.x,
           },
           other.id,
         );
       }
 
-      const distanceToTop = Math.abs(otherEdges.top - activeEdges.bottom);
+      const distanceToTop = Math.abs(bottomGapEdge - activeEdges.bottom);
       const distanceToSameTop = Math.abs(activeEdges.top - otherEdges.top);
       if (distanceToTop <= snapDistance) {
         consider(
@@ -687,7 +696,7 @@ export const computeDragSnapTarget = (
           distanceToTop,
           {
             ...active,
-            y: otherEdges.top - active.height,
+            y: bottomGapEdge - active.height,
             x: active.x,
           },
           other.id,
@@ -852,6 +861,7 @@ export const computeResizeSnapTarget = (
     }
 
     const otherEdges = windowEdges(other);
+    const gap = resolvePairGaps(active, other);
 
     const verticalOverlap = computeOverlap(
       activeEdges.top,
@@ -892,14 +902,16 @@ export const computeResizeSnapTarget = (
     );
 
     if ((movesRight || movesLeft) && verticallyAligned) {
-      const distanceToLeft = Math.abs(otherEdges.left - activeEdges.right);
+      const rightGapEdge = otherEdges.left - gap;
+      const leftGapEdge = otherEdges.right + gap;
+      const distanceToLeft = Math.abs(rightGapEdge - activeEdges.right);
       const distanceToRight = Math.abs(otherEdges.right - activeEdges.right);
       const distanceFromLeft = Math.abs(activeEdges.left - otherEdges.left);
-      const distanceFromRight = Math.abs(activeEdges.left - otherEdges.right);
+      const distanceFromRight = Math.abs(activeEdges.left - leftGapEdge);
 
       if (movesRight && movesLeft) {
         if (distanceToLeft <= snapDistance) {
-          addHorizontal('right', otherEdges.left, distanceToLeft, other.id);
+          addHorizontal('right', rightGapEdge, distanceToLeft, other.id);
         }
         if (distanceToRight <= snapDistance) {
           addHorizontal('right', otherEdges.right, distanceToRight, other.id);
@@ -908,11 +920,11 @@ export const computeResizeSnapTarget = (
           addHorizontal('left', otherEdges.left, distanceFromLeft, other.id);
         }
         if (distanceFromRight <= snapDistance) {
-          addHorizontal('left', otherEdges.right, distanceFromRight, other.id);
+          addHorizontal('left', leftGapEdge, distanceFromRight, other.id);
         }
       } else if (movesRight) {
         if (distanceToLeft <= snapDistance) {
-          addHorizontal('right', otherEdges.left, distanceToLeft, other.id);
+          addHorizontal('right', rightGapEdge, distanceToLeft, other.id);
         }
         if (distanceToRight <= snapDistance) {
           addHorizontal('right', otherEdges.right, distanceToRight, other.id);
@@ -922,20 +934,22 @@ export const computeResizeSnapTarget = (
           addHorizontal('left', otherEdges.left, distanceFromLeft, other.id);
         }
         if (distanceFromRight <= snapDistance) {
-          addHorizontal('left', otherEdges.right, distanceFromRight, other.id);
+          addHorizontal('left', leftGapEdge, distanceFromRight, other.id);
         }
       }
     }
 
     if ((movesTop || movesBottom) && horizontallyAligned) {
-      const distanceToTop = Math.abs(otherEdges.top - activeEdges.bottom);
+      const topGapEdge = otherEdges.bottom + gap;
+      const bottomGapEdge = otherEdges.top - gap;
+      const distanceToTop = Math.abs(bottomGapEdge - activeEdges.bottom);
       const distanceToBottom = Math.abs(otherEdges.bottom - activeEdges.bottom);
       const distanceFromTop = Math.abs(activeEdges.top - otherEdges.top);
-      const distanceFromBottom = Math.abs(activeEdges.top - otherEdges.bottom);
+      const distanceFromBottom = Math.abs(activeEdges.top - topGapEdge);
 
       if (movesTop && movesBottom) {
         if (distanceToTop <= snapDistance) {
-          addVertical('bottom', otherEdges.top, distanceToTop, other.id);
+          addVertical('bottom', bottomGapEdge, distanceToTop, other.id);
         }
         if (distanceToBottom <= snapDistance) {
           addVertical('bottom', otherEdges.bottom, distanceToBottom, other.id);
@@ -944,11 +958,11 @@ export const computeResizeSnapTarget = (
           addVertical('top', otherEdges.top, distanceFromTop, other.id);
         }
         if (distanceFromBottom <= snapDistance) {
-          addVertical('top', otherEdges.bottom, distanceFromBottom, other.id);
+          addVertical('top', topGapEdge, distanceFromBottom, other.id);
         }
       } else if (movesBottom) {
         if (distanceToTop <= snapDistance) {
-          addVertical('bottom', otherEdges.top, distanceToTop, other.id);
+          addVertical('bottom', bottomGapEdge, distanceToTop, other.id);
         }
         if (distanceToBottom <= snapDistance) {
           addVertical('bottom', otherEdges.bottom, distanceToBottom, other.id);
@@ -958,7 +972,7 @@ export const computeResizeSnapTarget = (
           addVertical('top', otherEdges.top, distanceFromTop, other.id);
         }
         if (distanceFromBottom <= snapDistance) {
-          addVertical('top', otherEdges.bottom, distanceFromBottom, other.id);
+          addVertical('top', topGapEdge, distanceFromBottom, other.id);
         }
       }
     }
@@ -1131,6 +1145,7 @@ export const computeResizeHintTarget = (
     }
 
     const targetEdges = windowEdges(target);
+
     considerHorizontal('left', targetEdges.left, target);
     considerHorizontal('left', targetEdges.right, target);
     considerHorizontal('right', targetEdges.left, target);
