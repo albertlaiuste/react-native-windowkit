@@ -1,5 +1,7 @@
 # react-native-windowkit
 
+![Demo](docs/videos/demo.gif)
+
 Lightweight window management primitives for React Native. Drag, resize, snap, and manage focus/z-index with your own window data.
 
 ## Table of contents
