@@ -8,7 +8,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated from 'react-native-reanimated';
+import Animated, { runOnJS } from 'react-native-reanimated';
 import {
   HANDLE_STYLE_DEFAULTS,
   HEADER_STYLE_DEFAULTS,
@@ -191,6 +191,22 @@ function Window<T extends WindowData>({
     },
     [onInteractionChange],
   );
+  const startInteraction = useCallback(
+    (
+      interaction: WindowInteraction<T>,
+      targetWindow: Pick<WindowData, 'x' | 'y' | 'width' | 'height'>,
+    ) => {
+      gestureStart.current = {
+        x: targetWindow.x,
+        y: targetWindow.y,
+        width: targetWindow.width,
+        height: targetWindow.height,
+      };
+      onFocus();
+      updateInteraction(interaction);
+    },
+    [onFocus, updateInteraction],
+  );
 
   const applyMove = useCallback(
     (dx: number, dy: number) => {
@@ -286,25 +302,21 @@ function Window<T extends WindowData>({
       Gesture.Pan()
         .enabled(isUnlocked)
         .onBegin(() => {
-          gestureStart.current = {
-            x: resolvedWindow.x,
-            y: resolvedWindow.y,
-            width: resolvedWindow.width,
-            height: resolvedWindow.height,
-          };
-          onFocus();
-          updateInteraction({
-            type: 'resize',
-            id: resolvedWindow.id,
-            direction: dir,
-          });
+          runOnJS(startInteraction)(
+            {
+              type: 'resize',
+              id: resolvedWindow.id,
+              direction: dir,
+            },
+            resolvedWindow,
+          );
         })
         .onUpdate((event) => {
-          applyResize(dir, event.translationX, event.translationY);
+          runOnJS(applyResize)(dir, event.translationX, event.translationY);
         })
         .onFinalize(() => {
-          updateInteraction(null);
-          onRelease(resolvedWindow.id, 'resize');
+          runOnJS(updateInteraction)(null);
+          runOnJS(onRelease)(resolvedWindow.id, 'resize');
         }),
     [
       applyResize,
@@ -312,6 +324,7 @@ function Window<T extends WindowData>({
       onFocus,
       onRelease,
       updateInteraction,
+      startInteraction,
       resolvedWindow.height,
       resolvedWindow.id,
       resolvedWindow.width,
@@ -347,21 +360,17 @@ function Window<T extends WindowData>({
         )
         .enabled(isUnlocked)
         .onBegin(() => {
-          gestureStart.current = {
-            x: resolvedWindow.x,
-            y: resolvedWindow.y,
-            width: resolvedWindow.width,
-            height: resolvedWindow.height,
-          };
-          onFocus();
-          updateInteraction({ type: 'drag', id: resolvedWindow.id });
+          runOnJS(startInteraction)(
+            { type: 'drag', id: resolvedWindow.id },
+            resolvedWindow,
+          );
         })
         .onUpdate((event) => {
-          applyMove(event.translationX, event.translationY);
+          runOnJS(applyMove)(event.translationX, event.translationY);
         })
         .onFinalize(() => {
-          updateInteraction(null);
-          onRelease(resolvedWindow.id, 'drag');
+          runOnJS(updateInteraction)(null);
+          runOnJS(onRelease)(resolvedWindow.id, 'drag');
         }),
     [
       applyMove,
@@ -371,6 +380,7 @@ function Window<T extends WindowData>({
       onFocus,
       onRelease,
       updateInteraction,
+      startInteraction,
       resolvedWindow.height,
       resolvedWindow.id,
       resolvedWindow.width,

@@ -90,7 +90,6 @@ const initialWindows: WindowData[] = [
 export default function App() {
   return (
     <WindowKitProvider windows={initialWindows}>
-      <Controls />
       <WindowView
         style={{ backgroundColor: '#171717' }}
         renderWindowContent={(win) => (
@@ -99,6 +98,7 @@ export default function App() {
           </View>
         )}
       />
+      <Controls />
     </WindowKitProvider>
   );
 }
@@ -125,7 +125,7 @@ function Controls() {
   };
 
   return (
-    <View style={{ position: 'sticky', width: '100%', padding: 8, flexDirection: 'row', flexWrap: 'wrap', backgroundColor: 'rgba(0,0,0,0.93)', justifyContent: 'center', gap: 8 }}>
+    <View style={{ position: 'relative', width: '100%', padding: 8, flexDirection: 'row', flexWrap: 'wrap', backgroundColor: 'rgba(0,0,0,0.93)', justifyContent: 'center', gap: 8 }}>
       <Button title="Reset layout" onPress={() => setWindows(initialWindows)} />
       <Button title="Add window" onPress={addWindow} />
       <Button
