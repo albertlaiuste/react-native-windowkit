@@ -10,7 +10,6 @@ Lightweight window management primitives for React Native. Drag, resize, snap, a
   - [Rendering performance](#rendering-performance)
 - [Working with `Windows`](#working-with-windows)
 - [Custom layout with `Window`](#custom-layout-with-window)
-- [Animations (override defaults)](#animations-override-defaults)
 - [Properties](#properties)
   - [`WindowView`](#windowview)
   - [`Window`](#window)
@@ -18,6 +17,7 @@ Lightweight window management primitives for React Native. Drag, resize, snap, a
 - [`useWindowKit` hook](#usewindowkit-hook)
 - [Configuration](#configuration)
 - [Styling](#styling)
+  - [Animations](#animations)
   - [`windowStyle` (per-window overrides)](#windowstyle-per-window-overrides)
 
 ## Installation
@@ -53,29 +53,36 @@ import {
 
 const initialWindows: WindowData[] = [
   {
-    id: 'one',
-    x: 40,
-    y: 40,
-    width: 360,
+    id: 'First',
+    x: 8,
+    y: 8,
+    width: 320,
     height: 240,
     zIndex: 1,
     windowStyle: {
-      minWidth: 280,
-      minHeight: 200,
-      backgroundColor: '#d1a33f',
+      backgroundColor: '#EFB810',
     },
   },
   {
-    id: 'two',
-    x: 260,
-    y: 180,
-    width: 400,
-    height: 320,
+    id: 'Second',
+    x: 8,
+    y: 256,
+    width: 320,
+    height: 240,
     zIndex: 2,
     windowStyle: {
-      maxWidth: 520,
-      maxHeight: 420,
-      backgroundColor: '#4ba2fa',
+      backgroundColor: '#1047EF',
+    },
+  },
+  {
+    id: 'Third',
+    x: 8,
+    y: 504,
+    width: 320,
+    height: 240,
+    zIndex: 3,
+    windowStyle: {
+      backgroundColor: '#B810EF',
     },
   },
 ];
@@ -83,6 +90,7 @@ const initialWindows: WindowData[] = [
 export default function App() {
   return (
     <WindowKitProvider windows={initialWindows}>
+      <Controls />
       <WindowView
         style={{ backgroundColor: '#171717' }}
         renderWindowContent={(win) => (
@@ -91,7 +99,6 @@ export default function App() {
           </View>
         )}
       />
-      <Controls />
     </WindowKitProvider>
   );
 }
@@ -108,7 +115,7 @@ function Controls() {
       ...windows,
       {
         id: `extra-${nextIndex}`,
-        x: 60 * nextIndex,
+        x: 8,
         y: 40 * nextIndex,
         width: 320,
         height: 240,
@@ -118,7 +125,7 @@ function Controls() {
   };
 
   return (
-    <View style={{ padding: 16, gap: 8 }}>
+    <View style={{ position: 'sticky', width: '100%', padding: 8, flexDirection: 'row', flexWrap: 'wrap', backgroundColor: 'rgba(0,0,0,0.93)', justifyContent: 'center', gap: 8 }}>
       <Button title="Reset layout" onPress={() => setWindows(initialWindows)} />
       <Button title="Add window" onPress={addWindow} />
       <Button
@@ -210,35 +217,6 @@ function CustomLayout() {
   );
 }
 ```
-
-## Animations (override defaults)
-
-`Window` and snap preview animations are exported so you can override them:
-
-```tsx
-import {
-  windowEnteringAnimation,
-  windowExitingAnimation,
-  snapSpringConfig,
-} from 'react-native-windowkit';
-```
-
-- `windowEnteringAnimation` / `windowExitingAnimation`: Reanimated animations used by the `Window` component for mount/unmount. Swap them by passing your own via `animations` on `WindowView` (applies to all windows) or directly on `Window` (`animations={{ entering: MyAnim }}`).
-- `snapSpringConfig`: Base spring config used by `WindowView` for the snap preview highlight. Pass overrides through the `animations` prop on `WindowView`:
-
-```tsx
-<WindowView
-  animations={{
-    snap: { ...snapSpringConfig, damping: 24 },
-    entering: windowEnteringAnimation, // optional override
-    exiting: windowExitingAnimation,   // optional override
-  }}
-  renderWindowContent={...}
-/>
-```
-
-Defaults are JS-driven on web (no native driver) and use cubic easing/spring on native.
-
 
 ## Properties
 
@@ -485,6 +463,34 @@ You can theme windows via the `windowStyles` prop on `WindowView` (all fields op
 ```
 
 Defaults are exported as `WINDOW_STYLE_DEFAULTS`, `HANDLE_STYLE_DEFAULTS`, `SHADOW_STYLE_DEFAULTS`, `SNAP_STYLE_DEFAULTS`, `HINT_STYLE_DEFAULTS`, `HEADER_STYLE_DEFAULTS`, and behavior defaults as `SNAP_BEHAVIOR_DEFAULTS` / `HINT_BEHAVIOR_DEFAULTS`.
+
+### Animations
+
+`Window` and snap preview animations are exported so you can override them:
+
+```tsx
+import {
+  windowEnteringAnimation,
+  windowExitingAnimation,
+  snapSpringConfig,
+} from 'react-native-windowkit';
+```
+
+- `windowEnteringAnimation` / `windowExitingAnimation`: Reanimated animations used by the `Window` component for mount/unmount. Swap them by passing your own via `animations` on `WindowView` (applies to all windows) or directly on `Window` (`animations={{ entering: MyAnim }}`).
+- `snapSpringConfig`: Base spring config used by `WindowView` for the snap preview highlight. Pass overrides through the `animations` prop on `WindowView`:
+
+```tsx
+<WindowView
+  animations={{
+    snap: { ...snapSpringConfig, damping: 24 },
+    entering: windowEnteringAnimation, // optional override
+    exiting: windowExitingAnimation,   // optional override
+  }}
+  renderWindowContent={...}
+/>
+```
+
+Defaults are JS-driven on web (no native driver) and use cubic easing/spring on native.
 
 ### `windowStyle` (per-window overrides)
 
