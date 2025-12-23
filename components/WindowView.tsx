@@ -419,7 +419,12 @@ function WindowView<T extends WindowData>({
 
   return (
     <View style={[viewStyles.container, style]} onLayout={onLayout}>
-      <View style={[viewStyles.canvas, canvasStyle]}>
+      <View
+        style={[
+          viewStyles.canvas,
+          Platform.OS === 'web' && viewStyles.canvasWeb,
+          canvasStyle,
+        ]}>
         {windowsWithDefaults.map((win) => (
           <Window
             key={win.id}
@@ -598,6 +603,10 @@ const viewStyles = StyleSheet.create({
   },
   canvas: {
     flex: 1,
+    position: 'relative',
+  },
+  canvasWeb: {
+    overflow: 'hidden',
   },
   snapPreview: {
     position: 'absolute',
