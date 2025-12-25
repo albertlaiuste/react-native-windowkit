@@ -1,7 +1,7 @@
 import { memo, type ComponentType, type ReactNode } from 'react';
 import { View, type ViewProps, type ViewStyle } from 'react-native';
 
-type WindowStyle = {
+export type WindowStyle = {
   minWidth?: number;
   minHeight?: number;
   maxWidth?: number;
@@ -9,7 +9,7 @@ type WindowStyle = {
   backgroundColor?: string;
 };
 
-type WindowData = {
+export type WindowData = {
   id: string;
 };
 
