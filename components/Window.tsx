@@ -1,4 +1,11 @@
-import { type ReactNode, memo, useCallback, useMemo, useRef } from 'react';
+import {
+  type ReactNode,
+  memo,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+} from 'react';
 import {
   Platform,
   Pressable,
@@ -8,7 +15,12 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { runOnJS } from 'react-native-reanimated';
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+} from 'react-native-reanimated';
+import WorkletContext from './WorkletContext';
 import {
   HANDLE_STYLE_DEFAULTS,
   HEADER_STYLE_DEFAULTS,
@@ -27,8 +39,10 @@ import {
   resolveMaxWidth,
   resolveMinHeight,
   resolveMinWidth,
+  type SnapCandidate,
   type CanvasSize,
 } from '../utils/geometry';
+import { computeWorkletTargets } from '../utils/workletTargets';
 import {
   type WindowInteraction,
   type WindowData,
@@ -50,6 +64,8 @@ type WindowProps<T extends WindowData> = {
   onRelease: (
     id: T['id'],
     type: NonNullable<WindowInteraction>['type'],
+    snapTarget?: Pick<SnapCandidate, 'activeId' | 'window'> | null,
+    hintTarget?: Pick<SnapCandidate, 'activeId' | 'window'> | null,
   ) => void;
   onInteractionChange: (interaction: WindowInteraction<T>) => void;
   renderContent: (window: T) => ReactNode;
@@ -131,6 +147,37 @@ function Window<T extends WindowData>({
       height,
     };
   }, [mergedWindowStyle, window]);
+  const xSv = useSharedValue(resolvedWindow.x);
+  const ySv = useSharedValue(resolvedWindow.y);
+  const widthSv = useSharedValue(resolvedWindow.width);
+  const heightSv = useSharedValue(resolvedWindow.height);
+  const startXSv = useSharedValue(resolvedWindow.x);
+  const startYSv = useSharedValue(resolvedWindow.y);
+  const startWidthSv = useSharedValue(resolvedWindow.width);
+  const startHeightSv = useSharedValue(resolvedWindow.height);
+  const workletContext = useContext(WorkletContext);
+  const animatedPositionStyle = useAnimatedStyle(() => ({
+    left: xSv.value,
+    top: ySv.value,
+    width: widthSv.value,
+    height: heightSv.value,
+  }));
+
+  useEffect(() => {
+    xSv.value = resolvedWindow.x;
+    ySv.value = resolvedWindow.y;
+    widthSv.value = resolvedWindow.width;
+    heightSv.value = resolvedWindow.height;
+  }, [
+    heightSv,
+    resolvedWindow.height,
+    resolvedWindow.width,
+    resolvedWindow.x,
+    resolvedWindow.y,
+    widthSv,
+    xSv,
+    ySv,
+  ]);
   let borderWidth = 0;
   let handleOpacity = componentStyles.handle.inactiveOpacity;
   let borderColor = componentStyles.window.borderColorInactive;
@@ -178,13 +225,6 @@ function Window<T extends WindowData>({
     handleBackgroundColor = componentStyles.handle.backgroundActive;
     handleBorderColor = componentStyles.handle.borderActive;
   }
-  const gestureStart = useRef({
-    x: window.x,
-    y: window.y,
-    width: window.width,
-    height: window.height,
-  });
-
   const updateInteraction = useCallback(
     (interaction: WindowInteraction<T>) => {
       onInteractionChange(interaction);
@@ -192,109 +232,85 @@ function Window<T extends WindowData>({
     [onInteractionChange],
   );
   const startInteraction = useCallback(
-    (
-      interaction: WindowInteraction<T>,
-      targetWindow: Pick<WindowData, 'x' | 'y' | 'width' | 'height'>,
-    ) => {
-      gestureStart.current = {
-        x: targetWindow.x,
-        y: targetWindow.y,
-        width: targetWindow.width,
-        height: targetWindow.height,
-      };
+    (interaction: WindowInteraction<T>) => {
       onFocus();
       updateInteraction(interaction);
     },
     [onFocus, updateInteraction],
   );
 
-  const applyMove = useCallback(
-    (dx: number, dy: number) => {
-      const next = clampWindowToBounds(
-        {
-          ...resolvedWindow,
-          x: gestureStart.current.x + dx,
-          y: gestureStart.current.y + dy,
-        },
-        canvasSize ?? undefined,
+  const findWindowById = useCallback((windows: WindowData[], id: string) => {
+    'worklet';
+    for (let i = 0; i < windows.length; i += 1) {
+      const win = windows[i];
+      if (!win) {
+        continue;
+      }
+      if (win.id === id) {
+        return win;
+      }
+    }
+    return null;
+  }, []);
+
+  const updateWorkletTargets = useCallback(
+    (
+      activeWindow: WindowData,
+      type: NonNullable<WindowInteraction<T>>['type'],
+      direction?: ResizeDirection,
+    ) => {
+      'worklet';
+      if (!workletContext) {
+        return;
+      }
+
+      const { snapTarget, hintTarget, hintGuides } = computeWorkletTargets(
+        activeWindow,
+        type,
+        direction,
+        workletContext.windows.value,
+        workletContext.canvasSize.value ?? undefined,
+        workletContext.snapConfig.value,
+        workletContext.hintConfig.value,
+        workletContext.snapTarget.value,
       );
-      onMove(next.x, next.y);
+
+      workletContext.snapTarget.value = snapTarget;
+      workletContext.hintTarget.value = hintTarget;
+      workletContext.hintGuides.value = hintGuides;
     },
-    [canvasSize, onMove, resolvedWindow],
+    [workletContext],
   );
-
-  const applyResize = useCallback(
-    (dir: ResizeDirection, dx: number, dy: number) => {
-      const start = gestureStart.current;
-      let next: WindowData = { ...resolvedWindow, ...start };
-      const minWidth = resolveMinWidth(resolvedWindow);
-      const minHeight = resolveMinHeight(resolvedWindow);
-      const maxWidth = resolveMaxWidth(resolvedWindow, canvasSize ?? undefined);
-      const maxHeight = resolveMaxHeight(
-        resolvedWindow,
-        canvasSize ?? undefined,
-      );
-
-      if (dir.includes('e')) {
-        next.width = start.width + dx;
-      }
-      if (dir.includes('s')) {
-        next.height = start.height + dy;
-      }
-      if (dir.includes('w')) {
-        next.width = start.width - dx;
-        next.x = start.x + dx;
-      }
-      if (dir.includes('n')) {
-        next.height = start.height - dy;
-        next.y = start.y + dy;
+  const updateSharedWindow = useCallback(
+    (id: string, next: Pick<WindowData, 'x' | 'y' | 'width' | 'height'>) => {
+      'worklet';
+      if (!workletContext) {
+        return;
       }
 
-      if (dir.includes('w')) {
-        if (next.width < minWidth) {
-          const delta = minWidth - next.width;
-          next.width = minWidth;
-          next.x -= delta;
-        } else if (next.width > maxWidth) {
-          const delta = next.width - maxWidth;
-          next.width = maxWidth;
-          next.x += delta;
+      const current = workletContext.windows.value;
+      let changed = false;
+      const updated = current.map((win) => {
+        if (win.id !== id) {
+          return win;
         }
-      } else if (dir.includes('e')) {
-        if (next.width < minWidth) {
-          next.width = minWidth;
-        } else if (next.width > maxWidth) {
-          next.width = maxWidth;
+        if (
+          win.x === next.x &&
+          win.y === next.y &&
+          win.width === next.width &&
+          win.height === next.height
+        ) {
+          return win;
         }
-      }
-
-      if (dir.includes('n')) {
-        if (next.height < minHeight) {
-          const delta = minHeight - next.height;
-          next.height = minHeight;
-          next.y -= delta;
-        } else if (next.height > maxHeight) {
-          const delta = next.height - maxHeight;
-          next.height = maxHeight;
-          next.y += delta;
-        }
-      } else if (dir.includes('s')) {
-        if (next.height < minHeight) {
-          next.height = minHeight;
-        } else if (next.height > maxHeight) {
-          next.height = maxHeight;
-        }
-      }
-
-      next = clampWindowToBounds(next, canvasSize ?? undefined);
-      onResize({
-        x: next.x,
-        y: next.y,
-        width: next.width,
-        height: next.height,
+        changed = true;
+        return { ...win, ...next };
       });
+
+      if (changed) {
+        workletContext.windows.value = updated;
+      }
     },
-    [canvasSize, onResize, resolvedWindow],
+    [workletContext],
   );
 
   const buildResizeGesture = useCallback(
@@ -302,34 +318,157 @@ function Window<T extends WindowData>({
       Gesture.Pan()
         .enabled(isUnlocked)
         .onBegin(() => {
-          runOnJS(startInteraction)(
-            {
-              type: 'resize',
-              id: resolvedWindow.id,
-              direction: dir,
-            },
-            resolvedWindow,
-          );
+          startXSv.value = xSv.value;
+          startYSv.value = ySv.value;
+          startWidthSv.value = widthSv.value;
+          startHeightSv.value = heightSv.value;
+          runOnJS(startInteraction)({
+            type: 'resize',
+            id: window.id,
+            direction: dir,
+          });
         })
         .onUpdate((event) => {
-          runOnJS(applyResize)(dir, event.translationX, event.translationY);
+          const baseWindow =
+            findWindowById(workletContext?.windows.value ?? [], window.id) ??
+            resolvedWindow;
+          const canvas = workletContext?.canvasSize.value ?? canvasSize;
+          let next: WindowData = {
+            ...baseWindow,
+            x: startXSv.value,
+            y: startYSv.value,
+            width: startWidthSv.value,
+            height: startHeightSv.value,
+          };
+          const minWidth = resolveMinWidth(baseWindow);
+          const minHeight = resolveMinHeight(baseWindow);
+          const maxWidth = resolveMaxWidth(baseWindow, canvas ?? undefined);
+          const maxHeight = resolveMaxHeight(baseWindow, canvas ?? undefined);
+
+          if (dir.includes('e')) {
+            next.width = startWidthSv.value + event.translationX;
+          }
+          if (dir.includes('s')) {
+            next.height = startHeightSv.value + event.translationY;
+          }
+          if (dir.includes('w')) {
+            next.width = startWidthSv.value - event.translationX;
+            next.x = startXSv.value + event.translationX;
+          }
+          if (dir.includes('n')) {
+            next.height = startHeightSv.value - event.translationY;
+            next.y = startYSv.value + event.translationY;
+          }
+
+          if (dir.includes('w')) {
+            if (next.width < minWidth) {
+              const delta = minWidth - next.width;
+              next.width = minWidth;
+              next.x -= delta;
+            } else if (next.width > maxWidth) {
+              const delta = next.width - maxWidth;
+              next.width = maxWidth;
+              next.x += delta;
+            }
+          } else if (dir.includes('e')) {
+            if (next.width < minWidth) {
+              next.width = minWidth;
+            } else if (next.width > maxWidth) {
+              next.width = maxWidth;
+            }
+          }
+
+          if (dir.includes('n')) {
+            if (next.height < minHeight) {
+              const delta = minHeight - next.height;
+              next.height = minHeight;
+              next.y -= delta;
+            } else if (next.height > maxHeight) {
+              const delta = next.height - maxHeight;
+              next.height = maxHeight;
+              next.y += delta;
+            }
+          } else if (dir.includes('s')) {
+            if (next.height < minHeight) {
+              next.height = minHeight;
+            } else if (next.height > maxHeight) {
+              next.height = maxHeight;
+            }
+          }
+
+          next = clampWindowToBounds(next, canvas ?? undefined);
+          xSv.value = next.x;
+          ySv.value = next.y;
+          widthSv.value = next.width;
+          heightSv.value = next.height;
+          updateSharedWindow(window.id, {
+            x: next.x,
+            y: next.y,
+            width: next.width,
+            height: next.height,
+          });
+          updateWorkletTargets(next, 'resize', dir);
         })
         .onFinalize(() => {
+          const snapTarget = workletContext?.snapTarget.value ?? null;
+          const hintTarget = workletContext?.hintTarget.value ?? null;
+          const finalTarget =
+            snapTarget?.activeId === window.id
+              ? snapTarget
+              : hintTarget?.activeId === window.id
+                ? hintTarget
+                : null;
+          if (finalTarget) {
+            xSv.value = finalTarget.window.x;
+            ySv.value = finalTarget.window.y;
+            widthSv.value = finalTarget.window.width;
+            heightSv.value = finalTarget.window.height;
+            updateSharedWindow(window.id, {
+              x: finalTarget.window.x,
+              y: finalTarget.window.y,
+              width: finalTarget.window.width,
+              height: finalTarget.window.height,
+            });
+          }
           runOnJS(updateInteraction)(null);
-          runOnJS(onRelease)(resolvedWindow.id, 'resize');
+          runOnJS(onResize)({
+            x: finalTarget?.window.x ?? xSv.value,
+            y: finalTarget?.window.y ?? ySv.value,
+            width: finalTarget?.window.width ?? widthSv.value,
+            height: finalTarget?.window.height ?? heightSv.value,
+          });
+          runOnJS(onRelease)(
+            window.id,
+            'resize',
+            snapTarget
+              ? { activeId: snapTarget.activeId, window: snapTarget.window }
+              : null,
+            hintTarget
+              ? { activeId: hintTarget.activeId, window: hintTarget.window }
+              : null,
+          );
         }),
     [
-      applyResize,
+      canvasSize,
       isUnlocked,
-      onFocus,
       onRelease,
+      onResize,
       updateInteraction,
       startInteraction,
-      resolvedWindow.height,
-      resolvedWindow.id,
-      resolvedWindow.width,
-      resolvedWindow.x,
-      resolvedWindow.y,
+      window.id,
+      findWindowById,
+      resolvedWindow,
+      startHeightSv,
+      startWidthSv,
+      startXSv,
+      startYSv,
+      updateWorkletTargets,
+      updateSharedWindow,
+      workletContext,
+      xSv,
+      ySv,
+      widthSv,
+      heightSv,
     ],
   );
 
@@ -360,32 +499,99 @@ function Window<T extends WindowData>({
         )
         .enabled(isUnlocked)
         .onBegin(() => {
-          runOnJS(startInteraction)(
-            { type: 'drag', id: resolvedWindow.id },
-            resolvedWindow,
-          );
+          startXSv.value = xSv.value;
+          startYSv.value = ySv.value;
+          startWidthSv.value = widthSv.value;
+          startHeightSv.value = heightSv.value;
+          runOnJS(startInteraction)({ type: 'drag', id: window.id });
         })
         .onUpdate((event) => {
-          runOnJS(applyMove)(event.translationX, event.translationY);
+          const baseWindow =
+            findWindowById(workletContext?.windows.value ?? [], window.id) ??
+            resolvedWindow;
+          const canvas = workletContext?.canvasSize.value ?? canvasSize;
+          const next = clampWindowToBounds(
+            {
+              ...baseWindow,
+              x: startXSv.value + event.translationX,
+              y: startYSv.value + event.translationY,
+              width: startWidthSv.value,
+              height: startHeightSv.value,
+            },
+            canvas ?? undefined,
+          );
+          xSv.value = next.x;
+          ySv.value = next.y;
+          widthSv.value = next.width;
+          heightSv.value = next.height;
+          updateSharedWindow(window.id, {
+            x: next.x,
+            y: next.y,
+            width: next.width,
+            height: next.height,
+          });
+          updateWorkletTargets(next, 'drag');
         })
         .onFinalize(() => {
+          const snapTarget = workletContext?.snapTarget.value ?? null;
+          const hintTarget = workletContext?.hintTarget.value ?? null;
+          const finalTarget =
+            snapTarget?.activeId === window.id
+              ? snapTarget
+              : hintTarget?.activeId === window.id
+                ? hintTarget
+                : null;
+          if (finalTarget) {
+            xSv.value = finalTarget.window.x;
+            ySv.value = finalTarget.window.y;
+            widthSv.value = finalTarget.window.width;
+            heightSv.value = finalTarget.window.height;
+            updateSharedWindow(window.id, {
+              x: finalTarget.window.x,
+              y: finalTarget.window.y,
+              width: finalTarget.window.width,
+              height: finalTarget.window.height,
+            });
+          }
           runOnJS(updateInteraction)(null);
-          runOnJS(onRelease)(resolvedWindow.id, 'drag');
+          runOnJS(onMove)(
+            finalTarget?.window.x ?? xSv.value,
+            finalTarget?.window.y ?? ySv.value,
+          );
+          runOnJS(onRelease)(
+            window.id,
+            'drag',
+            snapTarget
+              ? { activeId: snapTarget.activeId, window: snapTarget.window }
+              : null,
+            hintTarget
+              ? { activeId: hintTarget.activeId, window: hintTarget.window }
+              : null,
+          );
         }),
     [
-      applyMove,
       borderGestures,
       handleGestures,
       isUnlocked,
-      onFocus,
+      canvasSize,
+      onMove,
       onRelease,
       updateInteraction,
       startInteraction,
-      resolvedWindow.height,
-      resolvedWindow.id,
-      resolvedWindow.width,
-      resolvedWindow.x,
-      resolvedWindow.y,
+      window.id,
+      findWindowById,
+      resolvedWindow,
+      startHeightSv,
+      startWidthSv,
+      startXSv,
+      startYSv,
+      updateWorkletTargets,
+      updateSharedWindow,
+      workletContext,
+      xSv,
+      ySv,
+      widthSv,
+      heightSv,
     ],
   );
 
@@ -427,6 +633,7 @@ function Window<T extends WindowData>({
       exiting={exiting}
       style={[
         baseStyles.window,
+        animatedPositionStyle,
         {
           backgroundColor:
             mergedWindowStyle.backgroundColor ??
@@ -436,10 +643,6 @@ function Window<T extends WindowData>({
           borderRadius: mergedWindowStyle.borderRadius,
           ...shadowStyle,
           zIndex: resolvedWindow.zIndex,
-          width: resolvedWindow.width,
-          height: resolvedWindow.height,
-          left: resolvedWindow.x,
-          top: resolvedWindow.y,
         },
       ]}>
       <GestureDetector gesture={dragGesture}>

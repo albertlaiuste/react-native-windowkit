@@ -1,5 +1,6 @@
-import { Platform, Animated } from 'react-native';
+import { Platform } from 'react-native';
 import { Easing, ZoomIn, ZoomOut } from 'react-native-reanimated';
+import { type SnapSpringConfig } from '../hooks/useSnapPreview';
 
 export const windowEnteringAnimation =
   Platform.OS === 'web'
@@ -11,10 +12,9 @@ export const windowExitingAnimation =
     ? ZoomOut.duration(300)
     : ZoomOut.duration(300).easing(Easing.in(Easing.cubic));
 
-export const snapSpringConfig: Omit<Animated.SpringAnimationConfig, 'toValue'> =
-  {
-    damping: 16,
-    stiffness: 180,
-    mass: 0.7,
-    useNativeDriver: Platform.OS !== 'web',
-  };
+export const snapSpringConfig: SnapSpringConfig = {
+  damping: 16,
+  stiffness: 180,
+  mass: 0.7,
+  useNativeDriver: Platform.OS !== 'web',
+};
