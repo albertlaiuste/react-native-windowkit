@@ -13,7 +13,12 @@
     "noPropertyAccessFromIndexSignature": true,
     "noUncheckedIndexedAccess": true,
     "esModuleInterop": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    }
   },
   "include": [
     "lib/index.ts",
@@ -23,5 +28,8 @@
     "types/**/*",
     "utils/**/*"
   ],
-  "exclude": ["dist", "node_modules"]
+  "exclude": [
+    "dist",
+    "node_modules"
+  ]
 }
