@@ -36,258 +36,43 @@ const defaultHintSnapConfig: Required<HintSnapConfig> = {
   visualPreview: HINT_BEHAVIOR_DEFAULTS.snap.visualPreview,
 };
 
-const windowStyleFor = (window: WindowData) => ({
-  ...WINDOW_STYLE_DEFAULTS,
-  ...(window.windowStyle ?? {}),
-});
+const windowStyleFor = (window: WindowData) => {
+  'worklet';
+  return {
+    ...WINDOW_STYLE_DEFAULTS,
+    ...(window.windowStyle ?? {}),
+  };
+};
 
-export const resolveMinWidth = (window: WindowData) =>
-  windowStyleFor(window).minWidth;
+export const resolveMinWidth = (window: WindowData) => {
+  'worklet';
+  return windowStyleFor(window).minWidth;
+};
 
-export const resolveMinHeight = (window: WindowData) =>
-  windowStyleFor(window).minHeight;
+export const resolveMinHeight = (window: WindowData) => {
+  'worklet';
+  return windowStyleFor(window).minHeight;
+};
 
 export const resolveMaxWidth = (window: WindowData, canvas?: CanvasSize) => {
+  'worklet';
   const canvasLimit = canvas ? canvas.width : Number.POSITIVE_INFINITY;
   const custom = windowStyleFor(window).maxWidth ?? Number.POSITIVE_INFINITY;
   return Math.min(custom, canvasLimit);
 };
 
 export const resolveMaxHeight = (window: WindowData, canvas?: CanvasSize) => {
+  'worklet';
   const canvasLimit = canvas ? canvas.height : Number.POSITIVE_INFINITY;
   const custom = windowStyleFor(window).maxHeight ?? Number.POSITIVE_INFINITY;
   return Math.min(custom, canvasLimit);
-};
-
-const resolveWindowGaps = (window: WindowData) => windowStyleFor(window).gaps;
-
-const resolvePairGaps = (active: WindowData, target: WindowData) =>
-  Math.max(resolveWindowGaps(active) ?? 0, resolveWindowGaps(target) ?? 0);
-
-const mergeSnapConfig = (config: SnapConfig = defaultSnapConfig) => ({
-  enabled: config.enabled ?? defaultSnapConfig.enabled,
-  distance: config.distance ?? defaultSnapConfig.distance,
-  overlap: config.overlap ?? defaultSnapConfig.overlap,
-  visualPreview: config.visualPreview ?? defaultSnapConfig.visualPreview,
-});
-
-export const mergeHintConfig = (
-  hint: HintConfig = { enabled: HINT_BEHAVIOR_DEFAULTS.enabled },
-  snap: SnapConfig = defaultSnapConfig,
-) => ({
-  enabled: hint.enabled ?? HINT_BEHAVIOR_DEFAULTS.enabled,
-  distance: hint.distance ?? snap.distance ?? HINT_BEHAVIOR_DEFAULTS.distance,
-  snap: {
-    enabled: hint.snap?.enabled ?? defaultHintSnapConfig.enabled ?? true,
-    distance:
-      hint.snap?.distance ?? snap.distance ?? defaultHintSnapConfig.distance,
-    visualPreview:
-      hint.snap?.visualPreview ??
-      snap.visualPreview ??
-      defaultHintSnapConfig.visualPreview,
-  },
-});
-
-const pickBestSnap = (candidates: SnapCandidate[]) =>
-  candidates.reduce<SnapCandidate | null>((closest, next) => {
-    if (!closest || next.distance < closest.distance) {
-      return next;
-    }
-    return closest;
-  }, null);
-
-const mergeTargets = (
-  horizontal: SnapCandidate | null,
-  vertical: SnapCandidate | null,
-  combineWindows: (
-    horizontal: SnapCandidate,
-    vertical: SnapCandidate,
-  ) => WindowData,
-): SnapCandidate | null => {
-  if (!horizontal || !vertical) {
-    return null;
-  }
-
-  const edges = Array.from(new Set([...horizontal.edges, ...vertical.edges]));
-  const targetIds = Array.from(
-    new Set([...horizontal.targetIds, ...vertical.targetIds]),
-  );
-
-  return {
-    activeId: horizontal.activeId,
-    targetIds,
-    edges,
-    window: combineWindows(horizontal, vertical),
-    distance: horizontal.distance + vertical.distance,
-  };
-};
-
-const buildSnapCandidate = (
-  active: WindowData,
-  edge: SnapEdge,
-  window: WindowData,
-  targetId: string,
-  distance: number,
-  canvas?: CanvasSize,
-): SnapCandidate => ({
-  activeId: active.id,
-  targetIds: [targetId],
-  edges: [edge],
-  window: clampWindowToBounds(window, canvas),
-  distance,
-});
-
-const windowEdges = (window: WindowData): Edges => ({
-  left: window.x,
-  right: window.x + window.width,
-  top: window.y,
-  bottom: window.y + window.height,
-});
-
-const canvasToWindow = (canvas?: CanvasSize | null): WindowData | null =>
-  canvas
-    ? {
-        id: '__canvas__',
-        x: 0,
-        y: 0,
-        width: canvas.width,
-        height: canvas.height,
-        zIndex: 0,
-      }
-    : null;
-
-type AxisCandidate = {
-  window: WindowData;
-  guide: HintGuide;
-  edge: SnapEdge;
-  distance: number;
-  targetIds: string[];
-};
-
-const buildGuide = (
-  activeId: string,
-  targetId: string,
-  orientation: HintGuide['orientation'],
-  position: number,
-  activeEdges: Edges,
-  targetEdges: Edges,
-  edge: SnapEdge,
-): HintGuide => {
-  const isVertical = orientation === 'vertical';
-  return {
-    activeId,
-    targetIds: [targetId],
-    orientation,
-    position,
-    start: isVertical
-      ? Math.min(activeEdges.top, targetEdges.top)
-      : Math.min(activeEdges.left, targetEdges.left),
-    end: isVertical
-      ? Math.max(activeEdges.bottom, targetEdges.bottom)
-      : Math.max(activeEdges.right, targetEdges.right),
-    edge,
-  };
-};
-
-const computeOverlap = (
-  startA: number,
-  endA: number,
-  startB: number,
-  endB: number,
-) => Math.min(endA, endB) - Math.max(startA, startB);
-
-const computeGap = (
-  startA: number,
-  endA: number,
-  startB: number,
-  endB: number,
-) => Math.max(startB - endA, startA - endB, 0);
-
-const pickBestAxisCandidate = (
-  current: AxisCandidate | null,
-  next: AxisCandidate,
-) => {
-  if (!current || next.distance < current.distance) {
-    return next;
-  }
-  return current;
-};
-
-const withinSnapThreshold = (
-  overlap: number,
-  gap: number,
-  snapOverlap: number,
-  snapDistance: number,
-) => overlap > snapOverlap || gap <= snapDistance;
-
-const selectBestTarget = (
-  horizontalCandidates: SnapCandidate[],
-  verticalCandidates: SnapCandidate[],
-  combineWindows: (
-    horizontal: SnapCandidate,
-    vertical: SnapCandidate,
-  ) => WindowData,
-  canvas?: CanvasSize,
-) => {
-  const closestHorizontal = pickBestSnap(horizontalCandidates);
-  const closestVertical = pickBestSnap(verticalCandidates);
-  const combined = mergeTargets(
-    closestHorizontal,
-    closestVertical,
-    (horizontal, vertical) =>
-      clampWindowToBounds(combineWindows(horizontal, vertical), canvas),
-  );
-  const closestSingle = pickBestSnap([
-    ...horizontalCandidates,
-    ...verticalCandidates,
-  ]);
-
-  return combined ?? closestSingle;
-};
-
-const combineHintTargets = (
-  active: WindowData,
-  horizontal: AxisCandidate | null,
-  vertical: AxisCandidate | null,
-  canvas?: CanvasSize,
-): SnapCandidate | null => {
-  if (!horizontal && !vertical) {
-    return null;
-  }
-
-  const targetIds = Array.from(
-    new Set([...(horizontal?.targetIds ?? []), ...(vertical?.targetIds ?? [])]),
-  );
-  const window = clampWindowToBounds(
-    {
-      ...active,
-      ...(horizontal
-        ? { x: horizontal.window.x, width: horizontal.window.width }
-        : {}),
-      ...(vertical
-        ? { y: vertical.window.y, height: vertical.window.height }
-        : {}),
-    },
-    canvas,
-  );
-  const distance = (horizontal?.distance ?? 0) + (vertical?.distance ?? 0);
-
-  return {
-    activeId: active.id,
-    targetIds,
-    edges: [
-      ...(horizontal ? [horizontal.edge] : []),
-      ...(vertical ? [vertical.edge] : []),
-    ],
-    window,
-    distance: distance || horizontal?.distance || vertical?.distance || 0,
-  };
 };
 
 export const clampWindowToBounds = (
   window: WindowData,
   canvas?: CanvasSize,
 ): WindowData => {
+  'worklet';
   const minWidth = resolveMinWidth(window);
   const minHeight = resolveMinHeight(window);
   const maxWidth = resolveMaxWidth(window, canvas);
@@ -326,6 +111,301 @@ export const clampWindowToBounds = (
   };
 };
 
+const resolveWindowGaps = (window: WindowData) => {
+  'worklet';
+  return windowStyleFor(window).gaps;
+};
+
+const resolvePairGaps = (active: WindowData, target: WindowData) => {
+  'worklet';
+  return Math.max(
+    resolveWindowGaps(active) ?? 0,
+    resolveWindowGaps(target) ?? 0,
+  );
+};
+
+const mergeSnapConfig = (config: Partial<SnapConfig> = defaultSnapConfig) => {
+  'worklet';
+  return {
+    enabled: config.enabled ?? defaultSnapConfig.enabled,
+    distance: config.distance ?? defaultSnapConfig.distance,
+    overlap: config.overlap ?? defaultSnapConfig.overlap,
+    visualPreview: config.visualPreview ?? defaultSnapConfig.visualPreview,
+  };
+};
+
+export const resolveSnapConfig = (
+  snap: Partial<SnapConfig> | undefined,
+  snapEnabled = true,
+): SnapConfig => {
+  const merged = mergeSnapConfig(snap ?? {});
+  return {
+    ...merged,
+    enabled: merged.enabled && snapEnabled,
+  };
+};
+
+export const mergeHintConfig = (
+  hint: HintConfig = { enabled: HINT_BEHAVIOR_DEFAULTS.enabled },
+  snap: SnapConfig = defaultSnapConfig,
+) => {
+  'worklet';
+  return {
+    enabled: hint.enabled ?? HINT_BEHAVIOR_DEFAULTS.enabled,
+    distance: hint.distance ?? snap.distance ?? HINT_BEHAVIOR_DEFAULTS.distance,
+    snap: {
+      enabled: hint.snap?.enabled ?? defaultHintSnapConfig.enabled ?? true,
+      distance:
+        hint.snap?.distance ?? snap.distance ?? defaultHintSnapConfig.distance,
+      visualPreview:
+        hint.snap?.visualPreview ??
+        snap.visualPreview ??
+        defaultHintSnapConfig.visualPreview,
+    },
+  };
+};
+
+const pickBestSnap = (candidates: SnapCandidate[]) => {
+  'worklet';
+  return candidates.reduce<SnapCandidate | null>((closest, next) => {
+    if (!closest || next.distance < closest.distance) {
+      return next;
+    }
+    return closest;
+  }, null);
+};
+
+const dedupe = <T>(items: T[]): T[] => {
+  'worklet';
+  const next: T[] = [];
+  for (let i = 0; i < items.length; i += 1) {
+    const item = items[i];
+    if (item === undefined) {
+      continue;
+    }
+    let exists = false;
+    for (let j = 0; j < next.length; j += 1) {
+      if (next[j] === item) {
+        exists = true;
+        break;
+      }
+    }
+    if (!exists) {
+      next.push(item);
+    }
+  }
+  return next;
+};
+
+const mergeTargets = (
+  horizontal: SnapCandidate | null,
+  vertical: SnapCandidate | null,
+  combineWindows: (
+    horizontal: SnapCandidate,
+    vertical: SnapCandidate,
+  ) => WindowData,
+): SnapCandidate | null => {
+  'worklet';
+  if (!horizontal || !vertical) {
+    return null;
+  }
+
+  const edges = dedupe([...horizontal.edges, ...vertical.edges]);
+  const targetIds = dedupe([...horizontal.targetIds, ...vertical.targetIds]);
+
+  return {
+    activeId: horizontal.activeId,
+    targetIds,
+    edges,
+    window: combineWindows(horizontal, vertical),
+    distance: horizontal.distance + vertical.distance,
+  };
+};
+
+const buildSnapCandidate = (
+  active: WindowData,
+  edge: SnapEdge,
+  window: WindowData,
+  targetId: string,
+  distance: number,
+  canvas?: CanvasSize,
+): SnapCandidate => {
+  'worklet';
+  return {
+    activeId: active.id,
+    targetIds: [targetId],
+    edges: [edge],
+    window: clampWindowToBounds(window, canvas),
+    distance,
+  };
+};
+
+const windowEdges = (window: WindowData): Edges => {
+  'worklet';
+  return {
+    left: window.x,
+    right: window.x + window.width,
+    top: window.y,
+    bottom: window.y + window.height,
+  };
+};
+
+const canvasToWindow = (canvas?: CanvasSize | null): WindowData | null => {
+  'worklet';
+  return canvas
+    ? {
+        id: '__canvas__',
+        x: 0,
+        y: 0,
+        width: canvas.width,
+        height: canvas.height,
+        zIndex: 0,
+      }
+    : null;
+};
+
+type AxisCandidate = {
+  window: WindowData;
+  guide: HintGuide;
+  edge: SnapEdge;
+  distance: number;
+  targetIds: string[];
+};
+
+const buildGuide = (
+  activeId: string,
+  targetId: string,
+  orientation: HintGuide['orientation'],
+  position: number,
+  activeEdges: Edges,
+  targetEdges: Edges,
+  edge: SnapEdge,
+): HintGuide => {
+  'worklet';
+  const isVertical = orientation === 'vertical';
+  return {
+    activeId,
+    targetIds: [targetId],
+    orientation,
+    position,
+    start: isVertical
+      ? Math.min(activeEdges.top, targetEdges.top)
+      : Math.min(activeEdges.left, targetEdges.left),
+    end: isVertical
+      ? Math.max(activeEdges.bottom, targetEdges.bottom)
+      : Math.max(activeEdges.right, targetEdges.right),
+    edge,
+  };
+};
+
+const computeOverlap = (
+  startA: number,
+  endA: number,
+  startB: number,
+  endB: number,
+) => {
+  'worklet';
+  return Math.min(endA, endB) - Math.max(startA, startB);
+};
+
+const computeGap = (
+  startA: number,
+  endA: number,
+  startB: number,
+  endB: number,
+) => {
+  'worklet';
+  return Math.max(startB - endA, startA - endB, 0);
+};
+
+const pickBestAxisCandidate = (
+  current: AxisCandidate | null,
+  next: AxisCandidate,
+) => {
+  'worklet';
+  if (!current || next.distance < current.distance) {
+    return next;
+  }
+  return current;
+};
+
+const withinSnapThreshold = (
+  overlap: number,
+  gap: number,
+  snapOverlap: number,
+  snapDistance: number,
+) => {
+  'worklet';
+  return overlap > snapOverlap || gap <= snapDistance;
+};
+
+const selectBestTarget = (
+  horizontalCandidates: SnapCandidate[],
+  verticalCandidates: SnapCandidate[],
+  combineWindows: (
+    horizontal: SnapCandidate,
+    vertical: SnapCandidate,
+  ) => WindowData,
+  canvas?: CanvasSize,
+) => {
+  'worklet';
+  const closestHorizontal = pickBestSnap(horizontalCandidates);
+  const closestVertical = pickBestSnap(verticalCandidates);
+  const combined = mergeTargets(
+    closestHorizontal,
+    closestVertical,
+    (horizontal, vertical) =>
+      clampWindowToBounds(combineWindows(horizontal, vertical), canvas),
+  );
+  const closestSingle = pickBestSnap([
+    ...horizontalCandidates,
+    ...verticalCandidates,
+  ]);
+
+  return combined ?? closestSingle;
+};
+
+const combineHintTargets = (
+  active: WindowData,
+  horizontal: AxisCandidate | null,
+  vertical: AxisCandidate | null,
+  canvas?: CanvasSize,
+): SnapCandidate | null => {
+  'worklet';
+  if (!horizontal && !vertical) {
+    return null;
+  }
+
+  const targetIds = dedupe([
+    ...(horizontal?.targetIds ?? []),
+    ...(vertical?.targetIds ?? []),
+  ]);
+  const window = clampWindowToBounds(
+    {
+      ...active,
+      ...(horizontal
+        ? { x: horizontal.window.x, width: horizontal.window.width }
+        : {}),
+      ...(vertical
+        ? { y: vertical.window.y, height: vertical.window.height }
+        : {}),
+    },
+    canvas,
+  );
+  const distance = (horizontal?.distance ?? 0) + (vertical?.distance ?? 0);
+
+  return {
+    activeId: active.id,
+    targetIds,
+    edges: [
+      ...(horizontal ? [horizontal.edge] : []),
+      ...(vertical ? [vertical.edge] : []),
+    ],
+    window,
+    distance: distance || horizontal?.distance || vertical?.distance || 0,
+  };
+};
+
 const buildHintAxisCandidates = (
   active: WindowData,
   target: WindowData,
@@ -335,6 +415,7 @@ const buildHintAxisCandidates = (
   horizontal: AxisCandidate | null;
   vertical: AxisCandidate | null;
 } => {
+  'worklet';
   const activeEdges = windowEdges(active);
   const targetEdges = windowEdges(target);
   const activeCenterX = (activeEdges.left + activeEdges.right) / 2;
@@ -451,6 +532,7 @@ export const computeDragHintTarget = (
   canvas: CanvasSize | null | undefined,
   hintConfig: ReturnType<typeof mergeHintConfig>,
 ): { target: SnapCandidate | null; guides: HintGuide[] } => {
+  'worklet';
   const hintDistance = hintConfig.distance;
   const snapDistance = hintConfig.snap.distance ?? hintDistance;
   const canvasWindow = canvasToWindow(canvas);
@@ -532,6 +614,7 @@ export const computeDragSnapTarget = (
   stickyTo?: SnapCandidate | null,
   config: SnapConfig = defaultSnapConfig,
 ): SnapCandidate | null => {
+  'worklet';
   const { distance: snapDistance, overlap: snapOverlap } =
     mergeSnapConfig(config);
   const activeEdges = windowEdges(active);
@@ -775,6 +858,7 @@ export const computeResizeSnapTarget = (
   canvas?: CanvasSize,
   config: SnapConfig = defaultSnapConfig,
 ): SnapCandidate | null => {
+  'worklet';
   const { distance: snapDistance, overlap: snapOverlap } =
     mergeSnapConfig(config);
   const activeEdges = windowEdges(active);
@@ -1001,6 +1085,7 @@ export const computeResizeHintTarget = (
   canvas: CanvasSize | null | undefined,
   hintConfig: ReturnType<typeof mergeHintConfig>,
 ): { target: SnapCandidate | null; guides: HintGuide[] } => {
+  'worklet';
   const hintDistance = hintConfig.distance;
   const snapDistance = hintConfig.snap.distance ?? hintDistance;
   const activeEdges = windowEdges(active);

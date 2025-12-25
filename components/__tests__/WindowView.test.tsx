@@ -65,10 +65,18 @@ jest.mock('react-native-reanimated', () => {
     return anim;
   };
   const ease = jest.fn((v?: unknown) => v);
+  const sharedValue = (value: unknown) => ({ value });
 
   return {
     __esModule: true,
-    default: { call: () => undefined },
+    default: {
+      View: React.forwardRef((props: any, ref) =>
+        React.createElement('div', { ...props, ref }, props.children),
+      ),
+    },
+    View: React.forwardRef((props: any, ref) =>
+      React.createElement('div', { ...props, ref }, props.children),
+    ),
     ZoomIn: makeAnim(),
     ZoomOut: makeAnim(),
     Easing: {
@@ -76,24 +84,16 @@ jest.mock('react-native-reanimated', () => {
       in: jest.fn(() => ease),
       cubic: jest.fn(),
     },
+    useSharedValue: (value: unknown) => sharedValue(value),
+    useDerivedValue: (fn: () => unknown) => sharedValue(fn()),
+    useAnimatedStyle: (fn: () => unknown) => fn(),
+    withSpring: (value: unknown) => value,
   };
 });
 
 jest.mock('../WindowKitProvider', () => ({
   __esModule: true,
   useWindowKit: jest.fn(),
-}));
-
-jest.mock('../../hooks/useHintGuides', () => ({
-  __esModule: true,
-  default: mockUseHintGuides,
-}));
-
-const mockUseHintGuides = jest.fn(() => ({
-  hintTarget: null,
-  guides: [],
-  latestHintTarget: () => null,
-  clearHintTarget: jest.fn(),
 }));
 
 import WindowView from '../WindowView';
@@ -234,30 +234,6 @@ describe('WindowView memoization', () => {
     );
 
     expect(renderWindowContent).toHaveBeenCalledTimes(1);
-  });
-
-  it('keeps hint config stable across renders', () => {
-    const windows = [
-      { id: '1', x: 0, y: 0, width: 100, height: 100, zIndex: 1 },
-    ];
-    mockUseWindowKit.mockReturnValue({
-      state: createState(windows),
-      actions: baseActions,
-    });
-
-    const { rerender } = render(
-      <WindowView renderWindowContent={() => null} />,
-    );
-
-    expect(mockUseHintGuides).toHaveBeenCalledTimes(1);
-    const firstHintConfig = mockUseHintGuides.mock.calls[0][0]?.hintConfig;
-    expect(firstHintConfig).toBeDefined();
-
-    rerender(<WindowView renderWindowContent={() => null} />);
-
-    expect(mockUseHintGuides).toHaveBeenCalledTimes(2);
-    const secondHintConfig = mockUseHintGuides.mock.calls[1][0]?.hintConfig;
-    expect(secondHintConfig).toBe(firstHintConfig);
   });
 
   it('only rerenders the window that changes', () => {

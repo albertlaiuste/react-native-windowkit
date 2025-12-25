@@ -146,18 +146,20 @@ export function WindowKitProvider<T extends WindowData>({
 
   const moveWindow = useCallback((id: string, x: number, y: number) => {
     setState((current) => {
+      let changed = false;
       const nextWindows = current.windows.map((win) => {
         if (win.id === id) {
           if (win.x === x && win.y === y) {
             return win;
           }
+          changed = true;
           return { ...win, x, y };
         }
 
         return win;
       });
 
-      if (nextWindows === current.windows) {
+      if (!changed) {
         return current;
       }
 

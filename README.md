@@ -258,9 +258,9 @@ function CustomLayout() {
 | `isActive` | `boolean` | Whether the window is active/focused. |
 | `isUnlocked` | `boolean` | Whether the window is in unlocked mode. |
 | `onFocus` | `() => void` | Focus handler. |
-| `onMove` | `(x: number, y: number) => void` | Move handler. |
-| `onResize` | `(rect) => void` | Resize handler. Receives partial `{ x, y, width, height }`. |
-| `onRelease` | `(id, type) => void` | Called when drag/resize ends. |
+| `onMove` | `(x: number, y: number) => void` | Called when drag ends. |
+| `onResize` | `(rect) => void` | Called when resize ends. Receives partial `{ x, y, width, height }`. |
+| `onRelease` | `(id, type, snapTarget?, hintTarget?) => void` | Called when drag/resize ends. Targets are `{ activeId, window } \| null`. |
 | `onInteractionChange` | `(interaction) => void` | Tracks active interaction. |
 | `renderContent` | `(window) => ReactNode` | Renderer for window contents. |
 | `renderContentVersion` | `number` | Increment to recompute renderContent memo. |
@@ -492,7 +492,7 @@ import {
 />
 ```
 
-Defaults are JS-driven on web (no native driver) and use cubic easing/spring on native.
+Defaults use Reanimated animations on native and web.
 
 ### `windowStyle` (per-window overrides)
 
