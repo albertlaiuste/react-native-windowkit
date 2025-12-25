@@ -3,9 +3,15 @@
   "compilerOptions": {
     "outDir": "./dist",
     "rootDir": "./",
+    "baseUrl": ".",
     "declaration": true,
     "sourceMap": false,
-    "noEmit": false
+    "noEmit": false,
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    }
   },
   "include": [
     "lib/index.ts",

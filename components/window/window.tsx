@@ -1,5 +1,10 @@
 import { memo, type ComponentType, type ReactNode } from 'react';
-import { View, type ViewProps, type ViewStyle } from 'react-native';
+import {
+  View,
+  type StyleProp,
+  type ViewProps,
+  type ViewStyle,
+} from 'react-native';
 
 export type WindowStyle = {
   minWidth?: number;
@@ -17,9 +22,9 @@ type WindowProps<T extends WindowData, H = unknown> = {
   window: T;
   handlers?: H;
   className?: string;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   windowStyle?: WindowStyle;
-  contentStyle?: ViewStyle;
+  contentStyle?: StyleProp<ViewStyle>;
   renderContent?: (window: T, handlers: H) => ReactNode;
   renderHeader?: (window: T) => ReactNode;
   renderFooter?: (window: T) => ReactNode;

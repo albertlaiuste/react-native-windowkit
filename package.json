@@ -12,7 +12,7 @@
     "lint": "eslint . --ext .ts,.tsx",
     "test": "jest",
     "clean": "rimraf dist",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json",
     "prepack": "yarn clean && yarn build",
     "prepare": "yarn clean && yarn build"
   },
@@ -50,6 +50,7 @@
     "react-test-renderer": "19.1.1",
     "rimraf": "^6.1.2",
     "ts-jest": "^29.2.5",
+    "tsc-alias": "^1.8.16",
     "typescript": "~5.9.2"
   }
 }

@@ -1,4 +1,4 @@
-export { default as WindowView } from '../components/WindowView';
+export { default as WindowView } from '../components/layouts/window-view';
 export { default as Window } from '../components/Window';
 export {
   WindowKitProvider,
