@@ -85,6 +85,7 @@ export const HANDLE_STYLE_DEFAULTS: Required<HandleStyle> = {
 export const HEADER_STYLE_DEFAULTS: Required<HeaderStyle> = {
   backgroundColor: Colors.windows.hintBar,
   textColor: Colors.windows.hintText,
+  showTitle: true,
   paddingHorizontal: 10,
   paddingVertical: 6,
   closeButton: {

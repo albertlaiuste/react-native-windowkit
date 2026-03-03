@@ -673,13 +673,15 @@ function Window<T extends WindowData>({
                   },
                 ]}>
                 <View style={baseStyles.headerRow}>
-                  <Text
-                    style={[
-                      baseStyles.hintText,
-                      { color: componentStyles.header.textColor },
-                    ]}>
-                    {window.id}
-                  </Text>
+                  {componentStyles.header.showTitle !== false && (
+                    <Text
+                      style={[
+                        baseStyles.hintText,
+                        { color: componentStyles.header.textColor },
+                      ]}>
+                      {window.id}
+                    </Text>
+                  )}
                   {closeButtonEnabled && (
                     <Pressable
                       onPress={triggerClose}

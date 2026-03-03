@@ -135,6 +135,7 @@ export type HandleStyle = {
 export type HeaderStyle = {
   backgroundColor?: string;
   textColor?: string;
+  showTitle?: boolean;
   paddingHorizontal?: number;
   paddingVertical?: number;
   closeButton?: {

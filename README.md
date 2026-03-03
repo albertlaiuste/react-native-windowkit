@@ -385,6 +385,7 @@ You can theme windows via the `windowStyles` prop on `WindowView` (all fields op
 | `handle.borderInactive` | `string` | Handle border color when inactive | `'rgba(255,255,255,1.0)'` |
 | `header.backgroundColor` | `string` | Header background color | `'rgba(0, 0, 0, 0.25)'` |
 | `header.textColor` | `string` | Header text color | `'#ffffff'` |
+| `header.showTitle` | `boolean` | Whether to render the window ID as title text | `true` |
 | `header.paddingHorizontal` | `number` | Header horizontal padding | `10` |
 | `header.paddingVertical` | `number` | Header vertical padding | `6` |
 | `header.closeButton.size` | `number` | Close button size | `20` |
@@ -448,6 +449,7 @@ You can theme windows via the `windowStyles` prop on `WindowView` (all fields op
     header: {
       backgroundColor: 'rgba(0, 0, 0, 0.25)',
       textColor: '#ffffff',
+      showTitle: true,
       paddingHorizontal: 10,
       paddingVertical: 6,
       closeButton: {
