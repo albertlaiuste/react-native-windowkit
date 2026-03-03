@@ -795,6 +795,7 @@ const baseStyles = StyleSheet.create({
   closeButton: {
     alignItems: 'center',
     justifyContent: 'center',
+    marginLeft: 'auto',
   },
   closeIcon: {
     fontSize: 16,
