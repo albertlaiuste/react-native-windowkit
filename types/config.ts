@@ -23,6 +23,7 @@ export type WindowKitConfig = {
   snap?: Partial<SnapConfig>;
   hint?: Partial<HintConfig>;
   shadow?: boolean | WindowsMode;
+  handles?: boolean | WindowsMode | 'active';
   header?: {
     enabled?: boolean;
     closeButton?: boolean | WindowsMode;

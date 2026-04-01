@@ -78,6 +78,7 @@ type WindowProps<T extends WindowData> = {
   };
   styleConfig?: ResolvedWindowStyles;
   shadowEnabled: boolean;
+  handlesVisible: boolean;
   headerEnabled: boolean;
   closeButtonEnabled: boolean;
   onClose?: (id: string) => void;
@@ -97,6 +98,7 @@ function Window<T extends WindowData>({
   animations,
   styleConfig,
   shadowEnabled,
+  handlesVisible,
   headerEnabled,
   closeButtonEnabled,
   onClose,
@@ -186,7 +188,9 @@ function Window<T extends WindowData>({
 
   if (isUnlocked) {
     borderWidth = componentStyles.window.borderWidth ?? 0;
-    handleOpacity = componentStyles.handle.activeOpacity;
+    if (handlesVisible) {
+      handleOpacity = componentStyles.handle.activeOpacity;
+    }
   }
 
   const shadowStyle = useMemo<ViewStyle>(() => {
@@ -814,6 +818,7 @@ const MemoWindow = memo(
     prev.animations?.entering === next.animations?.entering &&
     prev.animations?.exiting === next.animations?.exiting &&
     prev.shadowEnabled === next.shadowEnabled &&
+    prev.handlesVisible === next.handlesVisible &&
     prev.headerEnabled === next.headerEnabled &&
     prev.closeButtonEnabled === next.closeButtonEnabled &&
     prev.onClose === next.onClose &&

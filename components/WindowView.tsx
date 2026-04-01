@@ -94,7 +94,7 @@ function WindowView<T extends WindowData>({
   onCloseWindow,
 }: WindowViewProps<T>) {
   const {
-    state: { windows, activeId, mode, snapEnabled, hintEnabled },
+    state: { windows, activeId, zCounter, mode, snapEnabled, hintEnabled },
     actions: {
       setWindows,
       focusWindow,
@@ -207,6 +207,10 @@ function WindowView<T extends WindowData>({
   const resolvedShadowMode = useMemo(
     () => config?.shadow ?? 'unlocked',
     [config?.shadow],
+  );
+  const resolvedHandlesMode = useMemo(
+    () => config?.handles ?? true,
+    [config?.handles],
   );
   const resolvedHeaderConfig = useMemo(() => {
     const closeButtonConfig = config?.header?.closeButton;
@@ -639,6 +643,15 @@ function WindowView<T extends WindowData>({
                     ? false
                     : resolvedShadowMode === mode
               }
+              handlesVisible={
+                resolvedHandlesMode === true
+                  ? true
+                  : resolvedHandlesMode === false
+                    ? false
+                    : resolvedHandlesMode === 'active'
+                      ? activeId === win.id || interaction?.id === win.id
+                      : resolvedHandlesMode === mode
+              }
               headerEnabled={resolvedHeaderConfig.enabled}
               closeButtonEnabled={resolvedHeaderConfig.closeButton}
               onClose={handleClose}
@@ -666,6 +679,7 @@ function WindowView<T extends WindowData>({
                   viewStyles.hintGuide,
                   hintGuideBaseStyle,
                   horizontalHintStyle,
+                  { zIndex: zCounter - 1 },
                 ]}
               />
               <Animated.View
@@ -674,6 +688,7 @@ function WindowView<T extends WindowData>({
                   viewStyles.hintGuide,
                   hintGuideBaseStyle,
                   verticalHintStyle,
+                  { zIndex: zCounter - 1 },
                 ]}
               />
             </>
@@ -689,6 +704,7 @@ function WindowView<T extends WindowData>({
                   borderWidth: resolvedStyles.snap.borderWidth,
                   borderColor: resolvedStyles.snap.borderColor,
                   backgroundColor: resolvedStyles.snap.backgroundColor,
+                  zIndex: zCounter - 1,
                 },
               ]}
             />

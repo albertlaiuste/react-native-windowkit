@@ -269,6 +269,7 @@ function CustomLayout() {
 | `animations` | `{ entering?, exiting? }` | Animation overrides for this window. |
 | `styleConfig` | `ResolvedWindowStyles` | Resolved visual styles to apply. |
 | `shadowEnabled` | `boolean` | Whether shadows render. |
+| `handlesVisible` | `boolean` | Whether resize handles are visible on this window. |
 | `headerEnabled` | `boolean` | Whether the header renders. |
 | `closeButtonEnabled` | `boolean` | Whether the close button renders. |
 | `onClose` | `(id: string) => void` | Close handler. |
@@ -319,6 +320,7 @@ Pass `config` to `WindowView` to tweak behavior (all optional):
 | `hint.snap.distance` | `number` | Snap distance for hint targets | `6` |
 | `hint.snap.visualPreview` | `boolean` | Show snap preview when snapping to hints | `true` |
 | `shadow` | `boolean \| 'locked' \| 'unlocked'` | `false` to disable, `true` for all modes, or limit to a mode | `'unlocked'` |
+| `handles` | `boolean \| 'locked' \| 'unlocked' \| 'active'` | `true` shows handles on all windows when unlocked. `'active'` restricts to the focused window only. `false` disables. Mode strings restrict to that mode. | `true` |
 | `header.enabled` | `boolean` | Render the header/ID bar | `true` |
 | `header.closeButton` | `boolean \| 'locked' \| 'unlocked'` | `true`/`false`, or `'locked'`/`'unlocked'` to restrict modes | `true` |
 
@@ -341,6 +343,7 @@ const config = {
     },
   },
   shadow: 'unlocked', // set false to disable or true to enable in both modes
+  handles: true, // 'active' to show only on focused window
   header: {
     enabled: true,
     closeButton: true, // use 'locked' or 'unlocked' to limit visibility
