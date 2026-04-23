@@ -229,6 +229,8 @@ function CustomLayout() {
 | `children` | `ReactNode` | **Required.** Content that uses the window kit. |
 | `windows` | `WindowData[]` | Initial windows. |
 | `mode` | `'locked' \| 'unlocked'` | Starting mode. |
+| `snapEnabled` | `boolean` | Controls snap enabled state. If provided, overrides the internal default and keeps state in sync when the prop changes. |
+| `hintEnabled` | `boolean` | Controls hint enabled state. If provided, overrides the internal default and keeps state in sync when the prop changes. |
 | `onWindowsChange` | `(windows: WindowData[]) => void` | Called when window list changes. |
 | `onActiveChange` | `(activeId: string \| null) => void` | Called when active window changes. |
 | `onModeChange` | `(mode: 'locked' \| 'unlocked') => void` | Called when mode toggles. |
