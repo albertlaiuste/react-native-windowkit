@@ -40,6 +40,8 @@ export function WindowKitProvider<T extends WindowData>({
   children,
   windows = [],
   mode = 'locked',
+  snapEnabled,
+  hintEnabled,
   onWindowsChange,
   onActiveChange,
   onModeChange,
@@ -54,8 +56,8 @@ export function WindowKitProvider<T extends WindowData>({
       activeId: null,
       zCounter,
       mode,
-      snapEnabled: SNAP_BEHAVIOR_DEFAULTS.enabled,
-      hintEnabled: HINT_BEHAVIOR_DEFAULTS.enabled,
+      snapEnabled: snapEnabled ?? SNAP_BEHAVIOR_DEFAULTS.enabled,
+      hintEnabled: hintEnabled ?? HINT_BEHAVIOR_DEFAULTS.enabled,
     };
   });
   const previousWindows = useRef<T[]>(state.windows);
@@ -98,6 +100,22 @@ export function WindowKitProvider<T extends WindowData>({
       onHintChange(state.hintEnabled);
     }
   }, [onHintChange, state.hintEnabled]);
+
+  useEffect(() => {
+    if (snapEnabled === undefined) return;
+    setState((current) => {
+      if (current.snapEnabled === snapEnabled) return current;
+      return { ...current, snapEnabled };
+    });
+  }, [snapEnabled]);
+
+  useEffect(() => {
+    if (hintEnabled === undefined) return;
+    setState((current) => {
+      if (current.hintEnabled === hintEnabled) return current;
+      return { ...current, hintEnabled };
+    });
+  }, [hintEnabled]);
 
   const setWindows = useCallback(
     (nextWindows: T[]) =>

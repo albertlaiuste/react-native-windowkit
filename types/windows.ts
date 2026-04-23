@@ -76,6 +76,8 @@ export type WindowKitProviderProps<T extends WindowData = WindowData> = {
   children: ReactNode;
   windows?: T[];
   mode?: WindowsMode;
+  snapEnabled?: boolean;
+  hintEnabled?: boolean;
   onWindowsChange?: (windows: T[]) => void;
   onActiveChange?: (activeId: string | null) => void;
   onModeChange?: (mode: WindowsMode) => void;
