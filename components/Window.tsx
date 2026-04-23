@@ -713,7 +713,7 @@ function Window<T extends WindowData>({
       </GestureDetector>
 
       <View
-        pointerEvents={isUnlocked ? 'box-none' : 'none'}
+        pointerEvents={isUnlocked && handlesVisible ? 'box-none' : 'none'}
         style={baseStyles.handleLayer}>
         {borderGestures.map((hitArea) => (
           <GestureDetector
