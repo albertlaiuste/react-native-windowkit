@@ -646,7 +646,7 @@ function Window<T extends WindowData>({
           borderWidth,
           borderRadius: mergedWindowStyle.borderRadius,
           ...shadowStyle,
-          zIndex: resolvedWindow.zIndex,
+          zIndex: resolvedWindow.alwaysVisible ? 0 : resolvedWindow.zIndex,
         },
       ]}>
       <GestureDetector gesture={dragGesture}>
@@ -832,6 +832,7 @@ const MemoWindow = memo(
     prev.window.width === next.window.width &&
     prev.window.height === next.window.height &&
     prev.window.zIndex === next.window.zIndex &&
+    prev.window.alwaysVisible === next.window.alwaysVisible &&
     prev.window.windowStyle === next.window.windowStyle,
 ) as typeof Window;
 

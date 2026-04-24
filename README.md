@@ -13,9 +13,10 @@ Lightweight window management primitives for React Native. Drag, resize, snap, a
 - [Working with `Windows`](#working-with-windows)
 - [Custom layout with `Window`](#custom-layout-with-window)
 - [Properties](#properties)
+  - [`WindowData`](#windowdata)
+  - [`WindowKitProvider`](#windowkitprovider)
   - [`WindowView`](#windowview)
   - [`Window`](#window)
-  - [`WindowKitProvider`](#windowkitprovider)
 - [`useWindowKit` hook](#usewindowkit-hook)
 - [Configuration](#configuration)
 - [Styling](#styling)
@@ -184,7 +185,7 @@ Tip: dashed hint lines generate segments; use small dash counts or set `dashWidt
 
 - Add/update/remove windows: `setWindows([...])`
 
-Each `WindowData` requires a unique `id`, `x`, `y`, `width`, `height`, and `zIndex`. You can optionally supply `windowStyle` to override visual bounds per window (see Styling).
+See [`WindowData`](#windowdata) for the full property list.
 
 ## Custom layout with `Window`
 
@@ -222,6 +223,17 @@ function CustomLayout() {
 
 ## Properties
 
+### `WindowData`
+
+| Property | Type | Description |
+| --- | --- | --- |
+| `id` | `string` | **Required.** Unique window identifier. |
+| `x` / `y` | `number` | **Required.** Window position in canvas coordinates. |
+| `width` / `height` | `number` | **Required.** Window size. |
+| `zIndex` | `number` | **Required.** Stacking order. Bumped automatically by `focusWindow` on drag/resize start. |
+| `alwaysVisible` | `boolean` | When `true`, the window is rendered at the back layer (visual `zIndex: 0`) and `focusWindow` leaves it there — drag/resize/click never raises it. `activeId` still updates so border/active styling continues to work. The stored `zIndex` value is preserved so toggling `alwaysVisible` back off restores the previous stacking. Use it for windows that act as a fixed background layer (e.g. a camera feed sitting under telemetry overlays); multiple windows can be `alwaysVisible` at the same time. |
+| `windowStyle` | `Partial<WindowStyle>` | Per-window visual overrides (see [Styling](#windowstyle-per-window-overrides)). |
+
 ### `WindowKitProvider`
 
 | Property | Type | Description |
@@ -231,7 +243,8 @@ function CustomLayout() {
 | `mode` | `'locked' \| 'unlocked'` | Starting mode. |
 | `snapEnabled` | `boolean` | Controls snap enabled state. If provided, overrides the internal default and keeps state in sync when the prop changes. |
 | `hintEnabled` | `boolean` | Controls hint enabled state. If provided, overrides the internal default and keeps state in sync when the prop changes. |
-| `onWindowsChange` | `(windows: WindowData[]) => void` | Called when window list changes. |
+| `windowOverrides` | `(window) => Partial<window> \| undefined` | Render-time per-window override. Called for each window on every render; the returned partial is shallow-merged on top of the stored window data before the library renders or evaluates focus rules. Lets you flip flags like `alwaysVisible` declaratively from app state (e.g. responsive breakpoint) without imperatively calling `setWindows`. Memoize with `useCallback` to avoid extra recomputation. |
+| `onWindowsChange` | `(windows: WindowData[]) => void` | Called when window list changes (post-override; effective windows). |
 | `onActiveChange` | `(activeId: string \| null) => void` | Called when active window changes. |
 | `onModeChange` | `(mode: 'locked' \| 'unlocked') => void` | Called when mode toggles. |
 | `onSnapChange` | `(enabled: boolean) => void` | Called when snap enabled state changes. |
@@ -296,7 +309,7 @@ Returns `{ state, actions }` from the nearest `WindowKitProvider`.
 | Action | Signature | Description |
 | --- | --- | --- |
 | `setWindows` | `(windows: WindowData[]) => void` | Replace windows array. |
-| `focusWindow` | `(id: string) => void` | Focus and bring window to front. |
+| `focusWindow` | `(id: string) => void` | Focus and bring window to front. Skips the z-index bump when the target window has `alwaysVisible: true` (the window stays pinned at the back layer). |
 | `moveWindow` | `(id: string, x: number, y: number) => void` | Move a window. |
 | `resizeWindow` | `(id: string, rect) => void` | Resize a window. |
 | `setMode` | `(mode: 'locked' \| 'unlocked') => void` | Set mode. |

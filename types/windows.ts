@@ -9,6 +9,10 @@ export type WindowData = {
   width: number;
   height: number;
   zIndex: number;
+  // When true, focusWindow leaves the window's zIndex unchanged so consumers
+  // can pin a window to a fixed layer (e.g. a back-layer camera). activeId
+  // still updates so border/active styling continues to work.
+  alwaysVisible?: boolean;
   windowStyle?: Partial<
     Pick<
       WindowStyle,
@@ -72,12 +76,23 @@ export type WindowKitContextValue<T extends WindowData = WindowData> = {
   actions: WindowKitActions<T>;
 };
 
+export type WindowOverridesFn<T extends WindowData = WindowData> = (
+  window: T,
+) => Partial<T> | undefined;
+
 export type WindowKitProviderProps<T extends WindowData = WindowData> = {
   children: ReactNode;
   windows?: T[];
   mode?: WindowsMode;
   snapEnabled?: boolean;
   hintEnabled?: boolean;
+  // Render-time per-window overrides. Called for each window on every render;
+  // the returned partial is shallow-merged on top of the stored window data
+  // before the library renders or evaluates focus rules. Useful for flipping
+  // flags like `alwaysVisible` based on app state (e.g. responsive
+  // breakpoint) without imperatively calling `setWindows`. Memoize with
+  // `useCallback` to avoid unnecessary recomputation.
+  windowOverrides?: WindowOverridesFn<T>;
   onWindowsChange?: (windows: T[]) => void;
   onActiveChange?: (activeId: string | null) => void;
   onModeChange?: (mode: WindowsMode) => void;

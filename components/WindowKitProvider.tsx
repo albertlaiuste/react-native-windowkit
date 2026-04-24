@@ -16,6 +16,7 @@ import {
   type WindowKitContextValue,
   type WindowKitProviderProps,
   type WindowData,
+  type WindowOverridesFn,
 } from '../types/windows';
 
 const WindowKitContext =
@@ -36,12 +37,22 @@ const selectNextActiveId = <T extends WindowData>(
   return windows[0]?.id ?? null;
 };
 
+const applyOverride = <T extends WindowData>(
+  win: T,
+  overrides: WindowOverridesFn<T> | undefined,
+): T => {
+  if (!overrides) return win;
+  const partial = overrides(win);
+  return partial ? { ...win, ...partial } : win;
+};
+
 export function WindowKitProvider<T extends WindowData>({
   children,
   windows = [],
   mode = 'locked',
   snapEnabled,
   hintEnabled,
+  windowOverrides,
   onWindowsChange,
   onActiveChange,
   onModeChange,
@@ -60,18 +71,33 @@ export function WindowKitProvider<T extends WindowData>({
       hintEnabled: hintEnabled ?? HINT_BEHAVIOR_DEFAULTS.enabled,
     };
   });
-  const previousWindows = useRef<T[]>(state.windows);
+  const overridesRef = useRef<WindowOverridesFn<T> | undefined>(
+    windowOverrides,
+  );
+  useEffect(() => {
+    overridesRef.current = windowOverrides;
+  }, [windowOverrides]);
+
+  const effectiveWindows = useMemo<T[]>(
+    () =>
+      windowOverrides
+        ? state.windows.map((win) => applyOverride(win, windowOverrides))
+        : state.windows,
+    [state.windows, windowOverrides],
+  );
+
+  const previousWindows = useRef<T[]>(effectiveWindows);
   const previousActiveId = useRef<string | null>(state.activeId);
   const previousMode = useRef<WindowsMode>(state.mode);
   const previousSnapEnabled = useRef<boolean>(state.snapEnabled);
   const previousHintEnabled = useRef<boolean>(state.hintEnabled);
 
   useEffect(() => {
-    if (onWindowsChange && previousWindows.current !== state.windows) {
-      previousWindows.current = state.windows;
-      onWindowsChange(state.windows);
+    if (onWindowsChange && previousWindows.current !== effectiveWindows) {
+      previousWindows.current = effectiveWindows;
+      onWindowsChange(effectiveWindows);
     }
-  }, [onWindowsChange, state.windows]);
+  }, [onWindowsChange, effectiveWindows]);
 
   useEffect(() => {
     if (onActiveChange && previousActiveId.current !== state.activeId) {
@@ -144,6 +170,16 @@ export function WindowKitProvider<T extends WindowData>({
 
   const focusWindow = useCallback((id: string) => {
     setState((current) => {
+      const target = current.windows.find((win) => win.id === id);
+      if (!target) return current;
+      const effectiveTarget = applyOverride(target, overridesRef.current);
+      if (effectiveTarget.alwaysVisible) {
+        if (current.activeId === id) {
+          return current;
+        }
+        return { ...current, activeId: id };
+      }
+
       const nextZ = current.zCounter + 1;
       const nextWindows = current.windows.map((win) => {
         if (win.id === id) {
@@ -270,7 +306,7 @@ export function WindowKitProvider<T extends WindowData>({
 
   const value: WindowKitContextValue<T> = useMemo(
     () => ({
-      state,
+      state: { ...state, windows: effectiveWindows },
       actions: {
         setWindows,
         focusWindow,
@@ -285,6 +321,7 @@ export function WindowKitProvider<T extends WindowData>({
       },
     }),
     [
+      effectiveWindows,
       focusWindow,
       setHintEnabled,
       moveWindow,
