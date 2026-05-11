@@ -40,6 +40,12 @@ yarn add react-native-windowkit
 
 Ensure your Babel config includes the Reanimated plugin and that Gesture Handler is properly installed/initialized as in the upstream docs.
 
+If you're on Reanimated 4, also install `react-native-worklets` (a separate peer dep of Reanimated 4 — your app needs it directly):
+
+```bash
+yarn add react-native-worklets
+```
+
 ## Quick start
 
 Minimal canvas with controls for lock/unlock and snapping.
@@ -150,7 +156,7 @@ function Controls() {
 
 ### Rendering performance
 
-`renderWindowContent` and `renderHeader` are treated as render props. If their identity changes every render (e.g., inline functions), every window re-renders. Keep them stable with `useCallback` (or a memoized component) to avoid unnecessary work:
+Wrap `renderWindowContent` and `renderHeader` in `useCallback` so their identity is stable across renders. An inline arrow forces every window to re-render its content whenever the parent renders:
 
 ```tsx
 const renderWindowContent = useCallback(
